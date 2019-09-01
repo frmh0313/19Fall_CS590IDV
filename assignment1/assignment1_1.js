@@ -8,6 +8,8 @@
 1. Fix translate - remove gap within a same origin.
 2. Discretization of range using different colors
 3. Deciding and implementing Adequate width of each bar
+4. Label
+5. Legend
 */
 
 async function drawChart() {
