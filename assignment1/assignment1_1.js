@@ -50,15 +50,8 @@ async function drawChart() {
       `translate(${dimensions.margin.left}px, ${dimensions.margin.top}px)`
     );
 
-  const yAccessor = row => +row.MPG;
-
-  const xAccesor0 = row => row.Origin;
-
-  const xAccessor1 = row => row.Car;
-
   const yScale = d3
     .scaleLinear()
-    // .domain(d3.extent(dataSet, yAccessor))
     .domain([0, d3.max(d3.extent(dataSet.map(row => +row.MPG)))])
     .range([dimensions.boundedHeight, 0]);
 
