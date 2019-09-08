@@ -1,6 +1,7 @@
 let dataSet;
 let bins = new Set();
 let origins = ["US", "Europe", "Japan"];
+
 // modified dataSet
 /*
 [{bin: __-__, counts: { US: __, Europe: __, Japan: __ }}]
@@ -83,7 +84,8 @@ async function drawChart() {
         (a, b) => +a.split("-")[0] - +b.split("-")[0]
       )
     )
-    .range([0, dimensions.boundedWidth]);
+    .range([0, dimensions.boundedWidth])
+    .padding(0.2);
 
   const xOriginScale = d3
     .scaleBand()
