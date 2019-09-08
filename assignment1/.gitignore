@@ -1,1 +1,5 @@
 node_modules
+.ipynb_checkpoints
+.vscode
+testbench.html
+testbench.ipynb
