@@ -1,8 +1,5 @@
-"xAxis: year - scaleBand";
-"yAxis: ";
-
 let origins = ["US", "Europe", "Japan"];
-
+let dataSet;
 function* years() {
   let i = 70;
   while (i <= 82) {
@@ -44,7 +41,7 @@ async function drawChart() {
     ]
     */
 
-  let dataSet = await d3
+  dataSet = await d3
     .csv("./old_cars.csv")
     .then(data => {
       let annualSumData = origins.map(origin => {
@@ -81,6 +78,8 @@ async function drawChart() {
       });
     });
 
+  console.log(dataSet);
+
   const wrapper = d3
     .select("#wrapper")
     .append("svg")
@@ -103,10 +102,21 @@ async function drawChart() {
 
   const yAxis = bounds.append("g").call(yAxisGenerator);
 
+  const yAxisLabel = yAxis
+    .append("text")
+    .attr("x", -dimensions.boundedHeight / 2)
+    .attr("y", -dimensions.margin.left + 10)
+    .attr("fill", "black")
+    .style("font-size", "1.4em")
+    .text("Average MPG")
+    .style("transform", "rotate(-90deg")
+    .style("text-anchor", "middle");
+
   const xScale = d3
     .scaleBand()
     .domain([...years()])
-    .range([0, dimensions.boundedWidth]);
+    .rangeRound([0, dimensions.boundedWidth])
+    .padding(0.9);
 
   const xAxisGenerator = d3.axisBottom(xScale);
 
@@ -115,10 +125,23 @@ async function drawChart() {
     .call(xAxisGenerator)
     .style("transform", `translateY(${dimensions.boundedHeight}px)`);
 
+  const xAxisLabel = xAxis
+    .append("text")
+    .attr("x", dimensions.boundedWidth / 2)
+    .attr("y", dimensions.margin.bottom - 10)
+    .attr("fill", "black")
+    .style("font-size", "1.4em")
+    .text("Year");
+
   const color = d3
     .scaleOrdinal()
     .domain(origins)
-    .range(["red", "green", "blue"]);
+    .range(d3.schemeCategory10);
+
+  const lineGenerator = d3
+    .line()
+    .x(d => xScale(d.year))
+    .y(d => yScale(d.avg));
 
   const legend = bounds
     .append("g")
@@ -144,6 +167,75 @@ async function drawChart() {
     .attr("y", 9.5)
     .attr("dy", "0.35em")
     .text(d => d);
+
+  const usLine = bounds
+    .append("path")
+    .attr(
+      "d",
+      lineGenerator(dataSet.filter(r => r.origin == "US")[0].annualAvg)
+    )
+    .attr("fill", "none")
+    .attr("stroke", color("US"))
+    .attr("stroke-width", 2);
+
+  const usDots = bounds
+    .append("g")
+    .selectAll("g")
+    .data(dataSet)
+    .join("g")
+    .selectAll("circle")
+    .data(dataSet.filter(r => r.origin == "US")[0].annualAvg)
+    .join("circle")
+    .attr("cx", d => xScale(d.year))
+    .attr("cy", d => yScale(d.avg))
+    .attr("r", 5)
+    .attr("fill", color("US"));
+
+  const europeLine = bounds
+    .append("path")
+    .attr(
+      "d",
+      lineGenerator(dataSet.filter(r => r.origin == "Europe")[0].annualAvg)
+    )
+    .attr("fill", "none")
+    .attr("stroke", color("Europe"))
+    .attr("stroke-width", 2);
+
+  const europeDots = bounds
+    .append("g")
+    .selectAll("g")
+    .data(dataSet)
+    .join("g")
+    .selectAll("circle")
+    .data(dataSet.filter(r => r.origin == "Europe")[0].annualAvg)
+    .join("circle")
+    .attr("cx", d => xScale(d.year))
+    .attr("cy", d => yScale(d.avg))
+    .attr("r", 5)
+    .attr("fill", color("Europe"));
+
+  const japanLine = bounds
+    .append("path")
+    .attr(
+      "d",
+      lineGenerator(dataSet.filter(r => r.origin == "Japan")[0].annualAvg)
+    )
+    .attr("fill", "none")
+    .attr("stroke", color("Japan"))
+    .attr("stroke-width", 2);
+
+  const japanDots = bounds
+    .append("g")
+    .selectAll("g")
+    .data(dataSet)
+    .join("g")
+    .selectAll("circle")
+    .data(dataSet.filter(r => r.origin == "Japan")[0].annualAvg)
+    .join("circle")
+    .attr("cx", d => xScale(d.year))
+    .attr("cy", d => yScale(d.avg))
+    .attr("r", 5)
+    .attr("fill", color("Japan"));
 }
 
 drawChart();
