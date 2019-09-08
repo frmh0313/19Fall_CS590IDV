@@ -42,7 +42,7 @@ async function drawChart() {
 
   const yScale = d3
     .scaleLinear()
-    .domain([0, d3.max(dataSet.map(row => +row.Horsepower))])
+    .domain([0, d3.max(dataSet.map(row => +row.MPG))])
     .range([dimensions.boundedHeight, 0]);
 
   const yAxisGenerator = d3.axisLeft(yScale);
@@ -54,14 +54,14 @@ async function drawChart() {
     .attr("x", -dimensions.boundedHeight / 2)
     .attr("y", -dimensions.margin.left + 10)
     .attr("fill", "black")
+    .text("MPG")
     .style("font-size", "1.4em")
-    .text("Horsepower")
     .style("transform", "rotate(-90deg)")
     .style("text-anchor", "middle");
 
   const xScale = d3
     .scaleLinear()
-    .domain([0, d3.max(dataSet.map(row => +row.MPG))])
+    .domain([0, d3.max(dataSet.map(row => +row.Horsepower))])
     .range([0, dimensions.boundedWidth]);
 
   const xAxisGenerator = d3.axisBottom(xScale);
@@ -77,7 +77,7 @@ async function drawChart() {
     .attr("y", dimensions.margin.bottom - 10)
     .attr("fill", "black")
     .attr("font-size", "1.4em")
-    .text("MPG");
+    .text("Horsepower");
 
   // generated using https://hihayk.github.io/scale/
   let schemeCategory13 = [
@@ -106,11 +106,10 @@ async function drawChart() {
     .selectAll("circle")
     .data(dataSet)
     .join("circle")
-    .attr("cx", d => xScale(+d.MPG))
-    .attr("cy", d => yScale(+d.Horsepower))
+    .attr("cx", d => xScale(+d.Horsepower))
+    .attr("cy", d => yScale(+d.MPG))
     .attr("r", 5)
     .attr("fill", d => color(+d.Model));
-  // .attr("fill", color);
 
   const legend = bounds
     .append("g")
