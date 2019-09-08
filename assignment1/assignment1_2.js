@@ -140,8 +140,8 @@ async function drawChart() {
 
   const lineGenerator = d3
     .line()
-    .x(d => xScale(d.year))
-    .y(d => yScale(d.avg));
+    .x(d => xScale(+d.year))
+    .y(d => yScale(+d.avg));
 
   const legend = bounds
     .append("g")
