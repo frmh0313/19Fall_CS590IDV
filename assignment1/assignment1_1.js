@@ -108,6 +108,31 @@ async function drawChart() {
     .call(xAxisGenerator)
     .style("transform", `translateY(${dimensions.boundedHeight}px)`);
 
+  const legend = bounds
+    .append("g")
+    .attr("transform", `translate(${dimensions.boundedWidth}, 0)`)
+    .attr("text-anchor", "end")
+    .attr("font-family", "sans-serif")
+    .attr("font-size", 10)
+    .selectAll("g")
+    .data(color.domain().slice())
+    .join("g")
+    .attr("transform", (d, i) => `translate(0, ${i * 20})`);
+
+  legend
+    .append("rect")
+    .attr("x", -19)
+    .attr("width", 19)
+    .attr("height", 19)
+    .attr("fill", color);
+
+  legend
+    .append("text")
+    .attr("x", -24)
+    .attr("y", 9.5)
+    .attr("dy", "0.35em")
+    .text(d => d);
+
   bounds
     .append("g")
     .selectAll("g")
@@ -115,21 +140,10 @@ async function drawChart() {
     .join("g")
     .attr("transform", d => `translate(${xMpgScale(d.bin)}, 0)`)
     .selectAll("rect")
-    .data(d => {
-      console.log(d);
-      return origins.map(origin => {
-        // Don't miss "return" here.
-        console.log({ origin, count: d.counts[origin] });
-        return { origin, count: d.counts[origin] };
-      });
-    })
+    .data(d => origins.map(origin => ({ origin, count: d.counts[origin] })))
     .join("rect")
     .attr("x", d => xOriginScale(d.origin))
-    .attr("y", d => {
-      console.log("in y attribute");
-      console.log(d);
-      return yScale(d.count);
-    })
+    .attr("y", d => yScale(d.count))
     .attr("width", xOriginScale.bandwidth())
     .attr("height", d => yScale(0) - yScale(d.count))
     .attr("fill", d => color(d.origin));
