@@ -1,4 +1,3 @@
-let dataSet;
 let bins = new Set();
 let origins = ["US", "Europe", "Japan"];
 
@@ -33,7 +32,7 @@ async function drawChart() {
   dimensions.boundedWidth =
     dimensions.width - dimensions.margin.left - dimensions.margin.right;
 
-  dataSet = await d3.csv("./old_cars.csv").then(data =>
+  let dataSet = await d3.csv("./old_cars.csv").then(data =>
     data.map(row => {
       row.mpgBin = findMPGBin(row.MPG);
       bins.add(row.mpgBin);
@@ -96,17 +95,35 @@ async function drawChart() {
 
   const yAxis = bounds.append("g").call(yAxisGenerator);
 
+  const yAxisLabel = yAxis
+    .append("text")
+    .attr("x", -dimensions.boundedHeight / 2)
+    .attr("y", -dimensions.margin.left + 10)
+    .attr("fill", "black")
+    .style("font-size", "1.4em")
+    .text("Number of Car Models")
+    .style("transform", "rotate(-90deg)")
+    .style("text-anchor", "middle");
+
   const xAxisGenerator = d3.axisBottom(xMpgScale);
 
   const color = d3
     .scaleOrdinal()
     .domain(origins)
-    .range(["red", "green", "blue"]);
+    .range(d3.schemeCategory10);
 
   const xAxis = bounds
     .append("g")
     .call(xAxisGenerator)
     .style("transform", `translateY(${dimensions.boundedHeight}px)`);
+
+  const xAxisLabel = xAxis
+    .append("text")
+    .attr("x", dimensions.boundedWidth / 2)
+    .attr("y", dimensions.margin.bottom - 10)
+    .attr("fill", "black")
+    .style("font-size", "1.4em")
+    .text("MPG");
 
   const legend = bounds
     .append("g")
