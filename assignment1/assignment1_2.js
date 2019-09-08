@@ -109,7 +109,7 @@ async function drawChart() {
     .attr("fill", "black")
     .style("font-size", "1.4em")
     .text("Average MPG")
-    .style("transform", "rotate(-90deg")
+    .style("transform", "rotate(-90deg)")
     .style("text-anchor", "middle");
 
   const xScale = d3
