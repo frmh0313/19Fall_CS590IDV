@@ -1,17 +1,19 @@
-// const d3 = require("d3");
-"understanding description: three grouped bar charts associated with three origins.";
-"Each grouped barchart shows the distribution of mpg of cars.";
-"As the value of mpg, color changes";
-
-// TODO
-/*
-1. Fix translate - remove gap within a same origin.
-2. Discretization of range using different colors
-3. Deciding and implementing Adequate width of each bar
-4. Label
-5. Legend
-*/
 let dataSet;
+let bins = new Set();
+let origins = ["US", "Europe", "Japan"];
+// modified dataSet
+/*
+[{bin: __-__, counts: { US: __, Europe: __, Japan: __ }}]
+*/
+
+function findMPGBin(value) {
+  let floorValue = Math.floor(value);
+  let mpgBin =
+    floorValue % 2 == 0
+      ? `${floorValue}-${floorValue + 2}`
+      : `${floorValue - 1}-${floorValue + 1}`;
+  return mpgBin;
+}
 
 async function drawChart() {
   let dimensions = {
@@ -32,11 +34,28 @@ async function drawChart() {
 
   dataSet = await d3.csv("./old_cars.csv").then(data =>
     data.map(row => {
-      let carModel = `${row.Car}_${row.Model}`;
-      row.Car = carModel;
+      row.mpgBin = findMPGBin(row.MPG);
+      bins.add(row.mpgBin);
       return row;
     })
   );
+
+  let sortedBins = [...bins].sort(
+    (a, b) => +a.split("-")[0] - +b.split("-")[0]
+  );
+
+  // newData:
+  // [ {bin: 'n_n', counts: {US: 0, Europe: 0, Japan: 0}}]
+  let newData = sortedBins.map(bin => {
+    let obj = {};
+    obj.bin = bin;
+    obj.counts = { US: 0, Europe: 0, Japan: 0 };
+    return obj;
+  });
+
+  dataSet.forEach(row => {
+    newData.filter(el => el.bin === row.mpgBin)[0].counts[row.Origin] += 1;
+  });
 
   const wrapper = d3
     .select("#wrapper")
@@ -54,29 +73,32 @@ async function drawChart() {
 
   const yScale = d3
     .scaleLinear()
-    .domain([0, d3.max(d3.extent(dataSet.map(row => +row.MPG)))])
+    .domain([0, d3.max(newData.map(row => d3.max(Object.values(row.counts))))])
     .range([dimensions.boundedHeight, 0]);
 
-  const xScale0 = d3
-    .scaleLinear()
-    .domain([0, d3.max(d3.extent(dataSet.map(r => +r.MPG)))])
+  const xMpgScale = d3
+    .scaleBand()
+    .domain(
+      [...dataSet.map(r => r.mpgBin)].sort(
+        (a, b) => +a.split("-")[0] - +b.split("-")[0]
+      )
+    )
     .range([0, dimensions.boundedWidth]);
 
-  const xScale1 = d3
+  const xOriginScale = d3
     .scaleBand()
-    .domain(new Set(dataSet.map(r => r.Origin)))
-    .range([0, xScale0.bandwidth()]);
+    .domain(origins)
+    .range([0, xMpgScale.bandwidth()]);
 
-  // const yAxisGenerator = d3.axisLeft().scale(yScale);
   const yAxisGenerator = d3.axisLeft(yScale);
 
   const yAxis = bounds.append("g").call(yAxisGenerator);
 
-  const xAxisGenerator = d3.axisBottom(xScale0);
+  const xAxisGenerator = d3.axisBottom(xMpgScale);
 
   const color = d3
     .scaleOrdinal()
-    .domain(new Set(dataSet.map(row => row.Origin)))
+    .domain(origins)
     .range(["red", "green", "blue"]);
 
   const xAxis = bounds
@@ -84,79 +106,31 @@ async function drawChart() {
     .call(xAxisGenerator)
     .style("transform", `translateY(${dimensions.boundedHeight}px)`);
 
-  // working
-  // bounds
-  //   .selectAll("rect")
-  //   .data(dataSet)
-  //   .join("rect")
-  //   .attr("x", d => xScale1(d.Car))
-  //   .attr("y", d => yScale(d.MPG))
-  //   .attr("width", xScale1.bandwidth())
-  //   .attr("height", d => yScale(0) - yScale(d.MPG))
-  //   .attr("fill", d => color(d.Origin))
-  //   .attr("transform", d => `translate(${xScale0(d.Origin)}, 0)`);
-
-
-  bounds.append("g")
-  .text("group in bound")
-  .selectAll("g")
-  .data(dataSet)
-  .join("g")
-  .text((d, i) => `group in the group in bounds ${i}`)
-  .style("transform", `translate(${xScale0(d.MPG)}, 0)`)
-  .append("rect")
-  .join("rect")
-  .attr("x", d => xScale1(d.Origin))
-  .attr("y", d => )
-
-
-
-  // TODO
-  // modify data to make it available for yScale
-  // change y-Scale
-  // add to bounds. 
-
-
-  /*
   bounds
     .append("g")
-    .text("group in bounds group")
     .selectAll("g")
-    .data(dataSet)
+    .data(newData)
     .join("g")
-    .text((d, i) => `group in the group in bounds group ${i}`)
-    .style("transform", d => `translate(${xScale0(d.Origin)}, 0)`)
-    .append("rect")
-    // .selectAll("rect")
-    // .data(row => ({ Car: row.Car, MPG: +row.MPG, Origin: row.Origin }))
-    // .data(d => d)
+    .attr("transform", d => `translate(${xMpgScale(d.bin)}, 0)`)
+    .selectAll("rect")
+    .data(d => {
+      console.log(d);
+      return origins.map(origin => {
+        // Don't miss "return" here.
+        console.log({ origin, count: d.counts[origin] });
+        return { origin, count: d.counts[origin] };
+      });
+    })
     .join("rect")
-    .attr("x", d => xScale1(d.Car))
-    .attr("y", d => yScale(d.MPG))
-    // .attr("width", xScale1.bandwidth())
-    .attr("width", 2)
-    .attr("height", d => yScale(0) - yScale(d.MPG))
-    .attr("fill", d => color(d.Origin));
-
-  // return wrapper.node();
-  // .append("rect")
-
-  // bounds
-  //   .append("g")
-  //   .selectAll("g")
-  //   .data(dataSet)
-  //   .join("g")
-  //   .attr("trasnform", d => `translate(${xScale0(d.Origin)}, 0)`);
-
-  // bounds
-  //   .selectAll("rect")
-  //   .data(dataSet)
-  //   .attr("x", d => xScale1(d.Car))
-  //   .attr("y", d => yScale(d.MPG))
-  //   .attr("width", xScale1.bandwidth())
-  //   .attr("height", d => yScale(0) - yScale(d.MPG))
-  //   .attr("fill", d => color(d.Origin));
-  */
+    .attr("x", d => xOriginScale(d.origin))
+    .attr("y", d => {
+      console.log("in y attribute");
+      console.log(d);
+      return yScale(d.count);
+    })
+    .attr("width", xOriginScale.bandwidth())
+    .attr("height", d => yScale(0) - yScale(d.count))
+    .attr("fill", d => color(d.origin));
 }
 
 drawChart();
