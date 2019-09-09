@@ -8,8 +8,7 @@ function log(selection, msg) {
 }
 
 async function drawChart() {
-  // let dimensions = {
-  dimensions = {
+  let dimensions = {
     // width: window.innerWidth * 0.9,
     width: 964,
     padding: 30
@@ -29,18 +28,17 @@ async function drawChart() {
       return row;
     })
   );
-  // console.log(dataSet);
 
   const svg = d3
     .select("#wrapper")
     .append("svg")
     .attr("width", dimensions.width)
-    .attr("height", dimensions.width)
+    .attr("height", dimensions.width + 120)
     .attr(
       "viewBox",
-      `${-dimensions.padding} 0 ${dimensions.width} ${dimensions.width}`
+      `${-dimensions.padding} 60 ${dimensions.width} ${dimensions.width}`
     )
-    .attr("transform", `translate(${dimensions.padding}, 0)`)
+    .attr("transform", `translate(${dimensions.padding}, 60)`)
     .style("max-width", "100%")
     .style("height", "auto");
 
@@ -95,6 +93,11 @@ async function drawChart() {
       .call(g => g.selectAll(".tick line").attr("stroke", "#ddd"));
   };
 
+  const z = d3
+    .scaleOrdinal()
+    .domain(origins)
+    .range(d3.schemeCategory10);
+
   svg.append("g").call(xAxis);
 
   svg.append("g").call(yAxis);
@@ -108,11 +111,6 @@ async function drawChart() {
       "transform",
       ([i, j]) => `translate(${i * dimensions.size}, ${j * dimensions.size})`
     );
-
-  const zScale = d3
-    .scaleOrdinal()
-    .domain(origins)
-    .range(d3.schemeCategory10);
 
   cell
     .append("rect")
@@ -128,15 +126,15 @@ async function drawChart() {
       .selectAll("circle")
       .data(dataSet)
       .join("circle")
-      .attr("x", d => x[i](d[columns[i]]))
-      .attr("y", d => y[i](d[columns[j]]));
+      .attr("cx", d => x[i](d[columns[i]]))
+      .attr("cy", d => y[j](d[columns[j]]));
   });
 
   const circle = cell
     .selectAll("circle")
     .attr("r", 3.5)
     .attr("fill-opacity", 0.7)
-    .attr("fill", d => zScale(d.Origin));
+    .attr("fill", d => z(d.Origin));
 
   svg
     .append("g")
@@ -151,6 +149,31 @@ async function drawChart() {
     .attr("x", dimensions.padding)
     .attr("y", dimensions.padding)
     .attr("dy", ".71em")
+    .text(d => d);
+
+  const legend = svg
+    .append("g")
+    .attr("transform", `translate(${dimensions.width - dimensions.padding}, 0)`)
+    .attr("text-anchor", "end")
+    .attr("font-family", "sans-serif")
+    .attr("font-size", 10)
+    .selectAll("g")
+    .data(z.domain().slice())
+    .join("g")
+    .attr("transform", (d, i) => `translate(0, ${i * 20})`);
+
+  legend
+    .append("rect")
+    .attr("x", -19)
+    .attr("width", 19)
+    .attr("height", 19)
+    .attr("fill", z);
+
+  legend
+    .append("text")
+    .attr("x", -24)
+    .attr("y", 9.5)
+    .attr("dy", "0.35em")
     .text(d => d);
 }
 
