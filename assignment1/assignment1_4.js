@@ -3,34 +3,22 @@ let columns = ["MPG", "Weight", "Horsepower", "Displacement"];
 let dataSet;
 
 // FOR debugging
-let dimensions;
-
 function log(selection, msg) {
   console.log(msg, selection);
 }
+let x;
+let yScale;
 
 async function drawChart() {
   // let dimensions = {
   dimensions = {
-    width: window.innerWidth * 0.9,
-    height: window.innerHeight * 0.9,
-    padding: 20,
-    margin: {
-      top: 15,
-      right: 15,
-      bottom: 40,
-      left: 60
-    }
+    // width: window.innerWidth * 0.9,
+    width: 964,
+    padding: 20
   };
 
-  dimensions.boundedWidth =
-    dimensions.width - dimensions.margin.left - dimensions.margin.right;
-
-  dimensions.boundedHeight =
-    dimensions.height - dimensions.margin.top - dimensions.margin.bottom;
-
   dimensions.size =
-    (dimensions.boundedWidth - (columns.length + 1) * dimensions.padding) /
+    (dimensions.width - (columns.length + 1) * dimensions.padding) /
       columns.length +
     dimensions.padding;
 
@@ -45,11 +33,11 @@ async function drawChart() {
   );
   // console.log(dataSet);
 
-  const wrapper = d3
+  const svg = d3
     .select("#wrapper")
     .append("svg")
     .attr("width", dimensions.width)
-    .attr("height", dimensions.height)
+    .attr("height", dimensions.width)
     .attr(
       "viewBox",
       `${-dimensions.padding} 0 ${dimensions.width} ${dimensions.width}`
@@ -57,14 +45,7 @@ async function drawChart() {
     .style("max-width", "100%")
     .style("height", "auto");
 
-  const bounds = wrapper
-    .append("g")
-    .style(
-      "transform",
-      `translate(${dimensions.margin.left}px, ${dimensions.margin.top}px)`
-    );
-
-  const cell = bounds
+  const cell = svg
     .append("g")
     .selectAll("g")
     .data(d3.cross(d3.range(columns.length), d3.range(columns.length)))
@@ -74,7 +55,9 @@ async function drawChart() {
       ([i, j]) => `translate(${i * dimensions.size}, ${j * dimensions.size})`
     );
 
-  const xScale = columns.map(c =>
+  // const xScale = columns.map(c =>
+
+  x = columns.map(c =>
     d3
       .scaleLinear()
       .domain(d3.extent(dataSet, d => d[c]))
@@ -83,6 +66,18 @@ async function drawChart() {
         dimensions.size - dimensions.padding / 2
       ])
   );
+
+  /*
+    xScale = columns.map(c =>
+    d3
+      .scaleLinear()
+      .domain(d3.extent(dataSet, d => d[c]))
+      .rangeRound([
+        dimensions.padding / 2,
+        dimensions.size - dimensions.padding / 2
+      ])
+  );
+  */
   /*
   xAxisGenerator = g => {
     const axis = d3
@@ -148,22 +143,48 @@ async function drawChart() {
 
     return g
       .selectAll("g")
-      .data(xScale)
+      .data(x)
       .join("g")
       .attr("transform", (d, i) => `translate(${i * dimensions.size}, 0)`)
       .each(function(d) {
         return d3.select(this).call(axis.scale(d));
       })
-      .call(log, "each")
       .call(g => g.select(".domain").remove())
       .call(g => g.selectAll(".tick line").attr("stroke", "#ddd"));
   };
 
-  const yScale = xScale.map(x =>
+  // const yScale = xScale.map(x => {
+  y = x.map(x =>
     x
       .copy()
       .range([dimensions.size - dimensions.padding / 2, dimensions.padding / 2])
   );
+  // yScale = xScale.map(x =>
+  //   x
+  //     .copy()
+  //     .range([dimensions.size - dimensions.padding / 2, dimensions.padding / 2])
+  // );
+
+  /*
+  const yAxis = function(g) {
+    const axis = d3
+      .axisLeft()
+      .ticks(6)
+      .tickSize(-dimensions.size * columns.length);
+
+    return g
+      .selectAll("g")
+      .data(yScale)
+      .join("g")
+      .attr("transfrom", (d, i) => `translate(0, ${i * dimensions.size})`)
+      .call(log, "y lines")
+      .each(function(d) {
+        return d3.select(this).call(axis.scale(d));
+      })
+      .call(g => g.select(".domain").remove())
+      .call(g => g.selectAll(".tick line").attr("stroke", "#ddd"));
+  };
+*/
 
   const yAxis = function(g) {
     const axis = d3
@@ -172,15 +193,15 @@ async function drawChart() {
       .tickSize(-dimensions.size * columns.length);
     return g
       .selectAll("g")
-      .data(yScale)
+      .data(y)
       .join("g")
+      .attr("transform", (d, i) => `translate(0,${i * dimensions.size})`)
       .each(function(d) {
         return d3.select(this).call(axis.scale(d));
       })
       .call(g => g.select(".domain").remove())
       .call(g => g.selectAll(".tick line").attr("stroke", "#ddd"));
   };
-
   const zScale = d3
     .scaleOrdinal()
     .domain(origins)
@@ -195,17 +216,17 @@ async function drawChart() {
     .attr("width", dimensions.size - dimensions.padding)
     .attr("height", dimensions.size - dimensions.padding);
 
-  bounds.append("g").call(xAxis);
+  svg.append("g").call(xAxis);
 
-  bounds.append("g").call(yAxis);
+  svg.append("g").call(yAxis);
 
   cell.each(function([i, j]) {
     d3.select(this)
       .selectAll("circle")
       .data(dataSet)
       .join("circle")
-      .attr("x", d => xScale[i](d[columns[i]]))
-      .attr("y", d => yScale[i](d[columns[j]]));
+      .attr("x", d => x[i](d[columns[i]]))
+      .attr("y", d => y[i](d[columns[j]]));
   });
 
   const circle = cell
@@ -214,7 +235,7 @@ async function drawChart() {
     .attr("fill-opacity", 0.7)
     .attr("fill", d => zScale(d.Origin));
 
-  bounds
+  svg
     .append("g")
     .style("font", "bold 10px sans-serif")
     .selectAll("text")
