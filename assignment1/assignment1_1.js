@@ -7,7 +7,7 @@ let origins = ["US", "Europe", "Japan"];
 */
 
 function findMPGBin(value) {
-  let floorValue = Math.floor(value);
+  let floorValue = Math.floor(+value);
   let mpgBin =
     floorValue % 2 == 0
       ? `${floorValue}-${floorValue + 2}`
