@@ -1,8 +1,15 @@
 let dataSet;
+let birthRateScale;
+let birthRateBins = new Set();
+
+function findBirthRateBin(value) {
+  return `${value / 10}0-${value / 10}9`;
+}
+
 async function drawFunction() {
   let dimensions = {
     width: window.innerWidth * 0.9,
-    height: 600,
+    height: 700,
     margin: {
       top: 15,
       right: 15,
@@ -46,9 +53,15 @@ async function drawFunction() {
             row[key] = +row[key];
           }
         });
+
+        row["Birth rate bin"] = findBirthRateBin(row["Birth rate"]);
+        birthRateBins.add(row["Birth rate bin"]);
+
         return row;
       });
     });
+
+  console.log(dataSet);
 
   const wrapper = d3
     .select("#wrapper")
@@ -85,7 +98,8 @@ async function drawFunction() {
 
   const yScale = d3
     .scaleLinear()
-    .domain([0, d3.max(dataSet.map(row => row["Life expectancy at birth"]))])
+    // .domain([0, d3.max(dataSet.map(row => row["Life expectancy at birth"]))])
+    .domain([0, 90])
     .range([dimensions.boundedHeight, 0]);
 
   const yAxisGenerator = d3.axisLeft(yScale);
@@ -101,6 +115,41 @@ async function drawFunction() {
     .style("font-size", "1.4em")
     .style("transform", "rotate(-90deg)")
     .style("text-anchor", "middle");
+
+  const areaScale = d3
+    .scaleLinear()
+    .domain([0, d3.max(dataSet.map(row => row["Population"]))])
+    .range([3, 50]);
+
+  const colorScheme5 = ["#DEEDCF", "#74C67A", "#1D9A6C", "#137177", "#0A2F51"];
+
+  const sortedBirthRateBins = [...birthRateBins].sort(
+    (a, b) => +a.split("-")[0] - +b.split("-")[0]
+  );
+
+  birthRateScale = d3
+    .scaleOrdinal()
+    .domain(sortedBirthRateBins)
+    .range(colorScheme5);
+
+  // const birthRateScale = d3
+  // .scaleBandr()
+  // .domain([
+  //   d3.min(dataSet.map(row => row["Birth rate"])),
+  //   d3.max(dataSet.map(row => row["Birth rate"]))
+  // ])
+  // .range(colorScheme10);
+
+  const dots = bounds
+    .selectAll("circle")
+    .data(dataSet)
+    .join("circle")
+    .attr("cx", d => xScale(d["GDP per capita"]))
+    .attr("cy", d => yScale(d["Life expectancy at birth"]))
+    .attr("r", d => areaScale(d["Population"]))
+    .style("fill", d => birthRateScale(d["Birth rate bin"]))
+    .style("opacity", "0.7")
+    .attr("stroke", "black");
 }
 
 drawFunction();
