@@ -12,6 +12,9 @@
     <div id="wrapper"></div>
     <!-- <script type="text/javascript" src="assignment1_2.js"></script> -->
     <script>
+      function log(selection, msg) {
+        console.log(msg, selection);
+      }
       let origins = ["US", "Europe", "Japan"];
       let dataSet;
       function* years() {
@@ -37,23 +40,21 @@
           dimensions.height - dimensions.margin.top - dimensions.margin.bottom;
         dimensions.boundedWidth =
           dimensions.width - dimensions.margin.left - dimensions.margin.right;
-        /* annual sum data
-    [
-      {Origin: US, annualSum: [{ year: 70, sum: _, count: _}, ... {year: 82, sum: _, count: _}]},
-      {Origin: Europe, annualSum: [{ year: 70, sum: _, count: _}, ... {year: 82, sum: _, count: _}]},
-      {Origin: Japan, annualSum: [{ year: 70, sum: _, count: _}, ... {year: 82, sum: _, count: _}]}
-    ]
-    */
+        // annual sum data
+        // [
+        //   {Origin: US, annualSum: [{ year: 70, sum: _, count: _}, ... {year: 82, sum: _, count: _}]},
+        //   {Origin: Europe, annualSum: [{ year: 70, sum: _, count: _}, ... {year: 82, sum: _, count: _}]},
+        //   {Origin: Japan, annualSum: [{ year: 70, sum: _, count: _}, ... {year: 82, sum: _, count: _}]}
+        // ]
 
         // console.log(annualSumData);
 
-        /* final data (annual average data)
-  [
-    {Origin: US, avgValues: {70: _, 71: _, ... 82: _}}, 
-    {Origin: Europe, avgValues: {70: _, 71: _, ... 82: _}}, 
-    {Origin: Japan, avgValues: {70: _, 71: _, ... 82: _}}
-    ]
-    */
+        // final data (annual average data)
+        // [
+        // {Origin: US, avgValues: {70: _, 71: _, ... 82: _}},
+        // {Origin: Europe, avgValues: {70: _, 71: _, ... 82: _}},
+        // {Origin: Japan, avgValues: {70: _, 71: _, ... 82: _}}
+        // ]
 
         dataSet = await d3
           .csv("./old_cars.csv")
@@ -138,6 +139,7 @@
           .scaleBand()
           .domain([...years()])
           .rangeRound([0, dimensions.boundedWidth])
+          // .range([0, dimensions.boundedWidth])
           .padding(0.9);
 
         const xAxisGenerator = d3.axisBottom(xScale);
