@@ -1,6 +1,7 @@
 let dataSet;
 let birthRateScale;
 let birthRateBins = new Set();
+let columns;
 
 function findBirthRateBin(value) {
   return `${value / 10}0-${value / 10}9`;
@@ -8,7 +9,8 @@ function findBirthRateBin(value) {
 
 async function drawFunction() {
   let dimensions = {
-    width: window.innerWidth * 0.9,
+    // width: window.innerWidth * 0.9,
+    width: 800,
     height: 700,
     margin: {
       top: 15,
@@ -37,22 +39,23 @@ async function drawFunction() {
       })
     )
     .then(data => {
-      let keys = Object.keys(data[0]);
-      keys = keys.filter(key => key != "Country");
+      columns = Object.keys(data[0]);
 
       return data.map(row => {
-        keys.forEach(key => {
-          if (row[key].startsWith("$")) {
-            row[key] = +row[key]
-              .substr(1)
-              .split(",")
-              .join("");
-          } else if (row[key].includes(",")) {
-            row[key] = +row[key].split(",").join("");
-          } else {
-            row[key] = +row[key];
-          }
-        });
+        columns
+          .filter(column => column != "Country")
+          .forEach(key => {
+            if (row[key].startsWith("$")) {
+              row[key] = +row[key]
+                .substr(1)
+                .split(",")
+                .join("");
+            } else if (row[key].includes(",")) {
+              row[key] = +row[key].split(",").join("");
+            } else {
+              row[key] = +row[key];
+            }
+          });
 
         row["Birth rate bin"] = findBirthRateBin(row["Birth rate"]);
         birthRateBins.add(row["Birth rate bin"]);
@@ -131,14 +134,6 @@ async function drawFunction() {
     .scaleOrdinal()
     .domain(sortedBirthRateBins)
     .range(colorScheme5);
-
-  // const birthRateScale = d3
-  // .scaleBandr()
-  // .domain([
-  //   d3.min(dataSet.map(row => row["Birth rate"])),
-  //   d3.max(dataSet.map(row => row["Birth rate"]))
-  // ])
-  // .range(colorScheme10);
 
   const dots = bounds
     .selectAll("circle")
