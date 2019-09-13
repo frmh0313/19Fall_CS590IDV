@@ -3,14 +3,16 @@
   <title>Assignment 2: User Interaction</title>
 </head>
 <body>
-  <label>Y axis</label>
-  <select id="ySelection"></select>
-  <label>X axis</label>
-  <select id="xSelection"></select>
-  <label>Color</label>
-  <select id="colorSelection"></select>
-  <label>Area</label>
-  <select id="areaSelection"></select>
+  <div id="widgets">
+    <label>Y axis</label>
+    <select id="ySelection" class="linearScale"></select>
+    <label>X axis</label>
+    <select id="xSelection" class="linearScale"></select>
+    <label>Color</label>
+    <select id="colorSelection" class="scaleSelection"></select>
+    <label>Area</label>
+    <select id="areaSelection" class="linearScale"></select>
+  </div>
 
   <div id="wrapper"></div>
   <script type="text/javascript" src="https://d3js.org/d3.v5.min.js"></script>

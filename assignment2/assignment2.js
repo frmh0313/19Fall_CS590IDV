@@ -1,25 +1,46 @@
-let dataSet;
-let birthRateScale;
 let birthRateBins = new Set();
+let dataSet;
 let columns;
 
+let [wrapper, bounds] = [];
+let [xScale, yScale, colorScale, areaScale] = [];
+let scales = {
+  xScale: d3.scaleLinear(),
+  yScale: d3.scaleLinear(),
+  colorScale: d3.scaleBand(),
+  areaScale: d3.scaleLinear()
+};
+
+let [
+  xAxis,
+  xAxisGenerator,
+  xAxisLabel,
+  yAxis,
+  yAxisGenerator,
+  yAxisLabel,
+  areaLegend,
+  colorLegend
+] = [];
+
+let dots;
+let colorScheme;
+
+let dimensions = {
+  // width: window.innerWidth * 0.9,
+  width: 800,
+  height: 700,
+  margin: {
+    top: 15,
+    right: 15,
+    bottom: 40,
+    left: 60
+  }
+};
 function findBirthRateBin(value) {
   return `${value / 10}0-${value / 10}9`;
 }
 
 async function drawFunction() {
-  let dimensions = {
-    // width: window.innerWidth * 0.9,
-    width: 800,
-    height: 700,
-    margin: {
-      top: 15,
-      right: 15,
-      bottom: 40,
-      left: 60
-    }
-  };
-
   dimensions.boundedHeight =
     dimensions.height - dimensions.margin.top - dimensions.margin.bottom;
   dimensions.boundedWidth =
@@ -66,32 +87,34 @@ async function drawFunction() {
 
   console.log(dataSet);
 
-  const wrapper = d3
+  wrapper = d3
     .select("#wrapper")
     .append("svg")
     .attr("width", dimensions.width)
     .attr("height", dimensions.height);
 
-  const bounds = wrapper
+  bounds = wrapper
     .append("g")
     .style(
       "transform",
       `translate(${dimensions.margin.left}px, ${dimensions.margin.top}px)`
     );
 
-  const xScale = d3
+  scales.xScale = d3
     .scaleLinear()
     .domain([0, d3.max(dataSet.map(row => row["GDP per capita"]))])
     .range([0, dimensions.boundedWidth]);
 
-  const xAxisGenerator = d3.axisBottom(xScale);
+  console.log(`xScale(GDP): ${scales.xScale(30000)}`);
 
-  const xAxis = bounds
+  xAxisGenerator = d3.axisBottom(scales.xScale);
+
+  xAxis = bounds
     .append("g")
     .call(xAxisGenerator)
     .style("transform", `translateY(${dimensions.boundedHeight}px)`);
 
-  const xAxisLabel = xAxis
+  xAxisLabel = xAxis
     .append("text")
     .attr("x", dimensions.boundedWidth / 2)
     .attr("y", dimensions.margin.bottom - 10)
@@ -99,17 +122,17 @@ async function drawFunction() {
     .attr("font-size", "1.4em")
     .text("GDP per capita");
 
-  const yScale = d3
+  scales.yScale = d3
     .scaleLinear()
     // .domain([0, d3.max(dataSet.map(row => row["Life expectancy at birth"]))])
     .domain([0, 90])
     .range([dimensions.boundedHeight, 0]);
 
-  const yAxisGenerator = d3.axisLeft(yScale);
+  yAxisGenerator = d3.axisLeft(scales.yScale);
 
-  const yAxis = bounds.append("g").call(yAxisGenerator);
+  yAxis = bounds.append("g").call(yAxisGenerator);
 
-  const yAxisLabel = yAxis
+  yAxisLabel = yAxis
     .append("text")
     .attr("x", -dimensions.boundedHeight / 2)
     .attr("y", -dimensions.margin.left + 10)
@@ -119,32 +142,123 @@ async function drawFunction() {
     .style("transform", "rotate(-90deg)")
     .style("text-anchor", "middle");
 
-  const areaScale = d3
+  scales.areaScale = d3
     .scaleLinear()
     .domain([0, d3.max(dataSet.map(row => row["Population"]))])
     .range([3, 50]);
 
-  const colorScheme5 = ["#DEEDCF", "#74C67A", "#1D9A6C", "#137177", "#0A2F51"];
+  colorScheme5 = ["#DEEDCF", "#74C67A", "#1D9A6C", "#137177", "#0A2F51"];
 
-  const sortedBirthRateBins = [...birthRateBins].sort(
+  birthRateBins = [...birthRateBins].sort(
     (a, b) => +a.split("-")[0] - +b.split("-")[0]
   );
 
-  birthRateScale = d3
+  scales.colorScale = d3
     .scaleOrdinal()
-    .domain(sortedBirthRateBins)
+    .domain(birthRateBins)
     .range(colorScheme5);
 
-  const dots = bounds
+  dots = bounds
     .selectAll("circle")
     .data(dataSet)
     .join("circle")
-    .attr("cx", d => xScale(d["GDP per capita"]))
-    .attr("cy", d => yScale(d["Life expectancy at birth"]))
-    .attr("r", d => areaScale(d["Population"]))
-    .style("fill", d => birthRateScale(d["Birth rate bin"]))
+    .attr("cx", d => scales.xScale(d["GDP per capita"]))
+    .attr("cy", d => scales.yScale(d["Life expectancy at birth"]))
+    .attr("r", d => scales.areaScale(d["Population"]))
+    .style("fill", d => scales.colorScale(d["Birth rate bin"]))
     .style("opacity", "0.7")
     .attr("stroke", "black");
+
+  d3.select("#ySelection").on("change", function() {
+    updateScale("yScale", this.value);
+  });
+  d3.select("#xSelection").on("change", function() {
+    updateScale("xScale", this.value);
+  });
+  d3.select("#colorSelection").on("change", function() {
+    updateScale("colorScale", this.value);
+  });
+  d3.select("#areaSelection").on("change", function() {
+    updateScale("areaScale", this.value);
+  });
+
+  // options should be considered
+  d3.select("#widgets")
+    // .selectAll(".linearScale")
+    .selectAll("select")
+    .selectAll("option")
+    .append("option")
+    .data(columns.filter(c => c !== "Country"))
+    .join("option")
+    .attr("value", d => d)
+    .text(d => d);
+
+  d3.select("#colorSelection")
+    .append("option")
+    .join("option")
+    .attr("value", "Country")
+    .text("Country");
+}
+
+function updateScale(scale, selectedOption) {
+  console.log("scale: ", scale);
+  console.log("selectedOption: ", selectedOption);
+  let selectedScale = scales[scale].domain([
+    0,
+    d3.max(dataSet.map(row => row[selectedOption]))
+  ]);
+
+  if (scale == "xScale") {
+    selectedScale.range([0, dimensions.boundedWidth]);
+
+    xAxisGenerator = d3.axisBottom(selectedScale);
+
+    xAxis
+      .transition()
+      .duration(1000)
+      .call(xAxisGenerator);
+
+    dots
+      .data(dataSet)
+      .transition()
+      .duration(1000)
+      .attr("cx", d => selectedScale(d[selectedOption]));
+
+    xAxisLabel
+      .transition()
+      .duration(1000)
+      .text(selectedOption);
+  } else if (scale == "yScale") {
+    selectedScale.range([dimensions.boundedHeight, 0]);
+
+    yAxisGenerator = d3.axisLeft(selectedScale);
+
+    yAxis
+      .transition()
+      .duration(1000)
+      .call(yAxisGenerator);
+
+    yAxisLabel
+      .transition()
+      .duration(1000)
+      .text(selectedOption);
+    dots
+      .data(dataSet)
+      .transition()
+      .duration(1000)
+      .attr("cy", d => selectedScale(d[selectedOption]));
+  } else if (scale == "areaScale") {
+    // should exclude negative values
+    selectedScale.range([0, d3.max(dataSet.map(row => row[selectedOption]))]);
+
+    dots
+      .data(dataSet)
+      .transition()
+      .duration(1000)
+      .attr("r", d => selectedScale(d[selectedOption]));
+  } else if (scale == "colorScale") {
+    selectedScale.range(colorScheme5);
+  }
 }
 
 drawFunction();
