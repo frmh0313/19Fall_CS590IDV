@@ -168,14 +168,11 @@ async function drawFunction() {
     .domain(birthRateBins)
     .range(colorScheme5);
 
-  // problems of slider
-  // 2. After typing once, changing slider doesn't change the text in input element.
-
   sliderGenerator = d3
     .sliderBottom()
     .min(0)
     .max(3)
-    .width(500)
+    .width(600)
     .tickFormat(d3.format(".2%"))
     .ticks(10)
     .default(1)
@@ -187,8 +184,11 @@ async function drawFunction() {
     )
     .fill("skyblue")
     .on("onchange", function(val) {
-      console.log("val: ", val);
-      sliderInput.attr("value", val * 100).attr("text", val * 100);
+      sliderInput.attr("value", null);
+
+      sliderInput
+        .attr("text", (val * 100).toFixed(2))
+        .property("value", (val * 100).toFixed(2)); // property should be used instead of attr...
 
       dots
         .transition()
@@ -198,40 +198,22 @@ async function drawFunction() {
         });
     });
 
-  let sliderLabel = d3
-    .select("#slider")
-    .append("label")
-    .text("Area Slider");
-
   sliderInput = d3
-    .select("#slider")
-    .append("input")
-    .attr("id", "value-simple")
-    .attr("type", "number")
-    .attr("style", "display:inline")
-    .attr("min", 0)
-    .attr("max", 300)
-    // .attr("value", 100)
+    .select("#value-simple")
+    .attr("value", 100)
     .on("change", function() {
-      let thatSlider = this;
-      console.log("thatSlider.value: ", thatSlider.value);
-      sliderGenerator.silentValue(thatSlider.value / 100);
+      console.log("onchange");
+      let inputValue = this.value;
+      console.log("value: ", inputValue);
+      sliderGenerator.silentValue(inputValue / 100);
+
       dots
         .transition()
         .duration(1000)
         .attr("r", function() {
-          return (d3.select(this).attr("rOriginal") * thatSlider.value) / 100;
+          return (d3.select(this).attr("rOriginal") * inputValue) / 100;
         });
-    })
-    .on("oninput", e => {
-      console.log("oninput");
-      siliderGenerator.silentValue(e.target.value);
     });
-
-  const percentMark = d3
-    .select("#slider")
-    .append("label")
-    .text("%");
 
   slider = d3
     .select("#slider")
