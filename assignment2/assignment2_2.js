@@ -24,7 +24,7 @@ let [
 ] = [];
 
 let dots;
-let [slider, sliderGenerator] = [];
+let [slider, sliderGenerator, sliderInput] = [];
 let colorScheme;
 
 let dimensions = {
@@ -168,6 +168,9 @@ async function drawFunction() {
     .domain(birthRateBins)
     .range(colorScheme5);
 
+  // problems of slider
+  // 2. After typing once, changing slider doesn't change the text in input element.
+
   sliderGenerator = d3
     .sliderBottom()
     .min(0)
@@ -183,21 +186,52 @@ async function drawFunction() {
         .size(300)
     )
     .fill("skyblue")
-    .on("onchange", val => {
-      d3.select("#value-simple")
-        .attr("value", val * 100)
-        .text(val * 100);
+    .on("onchange", function(val) {
+      console.log("val: ", val);
+      sliderInput.attr("value", val * 100).attr("text", val * 100);
 
       dots
         .transition()
         .duration(1000)
-        // .attr("rOriginal", dots.attr("r"))
         .attr("r", function() {
-          console.log("this: ", this);
-          console.log("this.rOriginal: ", d3.select(this).attr("rOriginal"));
           return d3.select(this).attr("rOriginal") * val;
         });
     });
+
+  let sliderLabel = d3
+    .select("#slider")
+    .append("label")
+    .text("Area Slider");
+
+  sliderInput = d3
+    .select("#slider")
+    .append("input")
+    .attr("id", "value-simple")
+    .attr("type", "number")
+    .attr("style", "display:inline")
+    .attr("min", 0)
+    .attr("max", 300)
+    // .attr("value", 100)
+    .on("change", function() {
+      let thatSlider = this;
+      console.log("thatSlider.value: ", thatSlider.value);
+      sliderGenerator.silentValue(thatSlider.value / 100);
+      dots
+        .transition()
+        .duration(1000)
+        .attr("r", function() {
+          return (d3.select(this).attr("rOriginal") * thatSlider.value) / 100;
+        });
+    })
+    .on("oninput", e => {
+      console.log("oninput");
+      siliderGenerator.silentValue(e.target.value);
+    });
+
+  const percentMark = d3
+    .select("#slider")
+    .append("label")
+    .text("%");
 
   slider = d3
     .select("#slider")
@@ -209,9 +243,6 @@ async function drawFunction() {
     .attr("transform", "translate(30, 30)")
     .call(sliderGenerator);
 
-  document.getElementById("value-simple").value = d3.format(".0f")(
-    sliderGenerator.value() * 100
-  );
   dots = bounds
     .selectAll("circle")
     .data(dataSet)
@@ -227,12 +258,15 @@ async function drawFunction() {
   d3.select("#ySelection").on("change", function() {
     updateScale("yScale", this.value);
   });
+
   d3.select("#xSelection").on("change", function() {
     updateScale("xScale", this.value);
   });
+
   d3.select("#colorSelection").on("change", function() {
     updateScale("colorScale", this.value);
   });
+
   d3.select("#areaSelection").on("change", function() {
     updateScale("areaScale", this.value);
   });
@@ -322,12 +356,6 @@ function updateScale(scale, selectedOption) {
   } else if (scale == "colorScale") {
     selectedScale.range(colorScheme5);
   }
-}
-
-function sliderChange() {
-  sliderGenerator.silentValue(
-    document.getElementById("value-simple").value * 0.01
-  );
 }
 
 drawFunction();
