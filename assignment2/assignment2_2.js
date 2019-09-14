@@ -55,9 +55,10 @@ async function drawFunction() {
         let entries = Object.entries(row);
         let obj = {};
 
-        for ([key, value] of entries) {
+        Object.entries(row).forEach(([key, value]) => {
           obj[key.trim()] = value.trim();
-        }
+        });
+
         return obj;
       })
     )
@@ -97,7 +98,7 @@ async function drawFunction() {
   // margin considering the long numbers
   // translating xAxis considering the size of bubbles. - adding padding? zoom in as slider moves
   // synchronize the value of input element and slider
-
+  // make the default values of dropdown menus is visualized...
   wrapper = d3
     .select("#wrapper")
     .append("svg")
