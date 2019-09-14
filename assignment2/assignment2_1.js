@@ -78,7 +78,8 @@ async function drawFunction() {
 
   const xScale = d3
     .scaleLinear()
-    .domain([0, d3.max(dataSet.map(row => row["GDP per capita"]))])
+    // .domain([0, d3.max(dataSet.map(row => row["GDP per capita"]))])
+    .domain([0, 45000])
     .range([0, dimensions.boundedWidth]);
 
   const xAxisGenerator = d3.axisBottom(xScale);
