@@ -1,14 +1,15 @@
 let birthRateBins = new Set();
 let dataSet;
 let columns;
+let columnsWithNegative = new Set();
 
 let [wrapper, bounds] = [];
 let [xScale, yScale, colorScale, areaScale] = [];
 let scales = {
-  xScale: d3.scaleLinear(),
-  yScale: d3.scaleLinear(),
-  colorScale: d3.scaleBand(),
-  areaScale: d3.scaleLinear()
+  xScale: null,
+  yScale: null,
+  colorScale: null,
+  areaScale: null
 };
 
 let [
@@ -23,6 +24,7 @@ let [
 ] = [];
 
 let dots;
+let [slider, sliderGenerator] = [];
 let colorScheme;
 
 let dimensions = {
@@ -76,6 +78,9 @@ async function drawFunction() {
             } else {
               row[key] = +row[key];
             }
+            if (row[key] < 0) {
+              columnsWithNegative.add(key);
+            }
           });
 
         row["Birth rate bin"] = findBirthRateBin(row["Birth rate"]);
@@ -86,6 +91,12 @@ async function drawFunction() {
     });
 
   console.log(dataSet);
+
+  // TODO
+  // add legends and implement transitioning of them
+  // margin considering the long numbers
+  // translating xAxis considering the size of bubbles. - adding padding? zoom in as slider moves
+  // synchronize the value of input element and slider
 
   wrapper = d3
     .select("#wrapper")
@@ -124,7 +135,6 @@ async function drawFunction() {
 
   scales.yScale = d3
     .scaleLinear()
-    // .domain([0, d3.max(dataSet.map(row => row["Life expectancy at birth"]))])
     .domain([0, 90])
     .range([dimensions.boundedHeight, 0]);
 
@@ -158,6 +168,50 @@ async function drawFunction() {
     .domain(birthRateBins)
     .range(colorScheme5);
 
+  sliderGenerator = d3
+    .sliderBottom()
+    .min(0)
+    .max(3)
+    .width(500)
+    .tickFormat(d3.format(".2%"))
+    .ticks(10)
+    .default(1)
+    .handle(
+      d3
+        .symbol()
+        .type(d3.symbolCircle)
+        .size(300)
+    )
+    .fill("skyblue")
+    .on("onchange", val => {
+      d3.select("#value-simple")
+        .attr("value", val * 100)
+        .text(val * 100);
+
+      dots
+        .transition()
+        .duration(1000)
+        // .attr("rOriginal", dots.attr("r"))
+        .attr("r", function() {
+          console.log("this: ", this);
+          console.log("this.rOriginal: ", d3.select(this).attr("rOriginal"));
+          return d3.select(this).attr("rOriginal") * val;
+        });
+    });
+
+  slider = d3
+    .select("#slider")
+    .append("svg")
+    .attr("width", 700)
+    .attr("height", 100)
+    .style("display", "block")
+    .append("g")
+    .attr("transform", "translate(30, 30)")
+    .call(sliderGenerator);
+
+  document.getElementById("value-simple").value = d3.format(".0f")(
+    sliderGenerator.value() * 100
+  );
   dots = bounds
     .selectAll("circle")
     .data(dataSet)
@@ -165,6 +219,7 @@ async function drawFunction() {
     .attr("cx", d => scales.xScale(d["GDP per capita"]))
     .attr("cy", d => scales.yScale(d["Life expectancy at birth"]))
     .attr("r", d => scales.areaScale(d["Population"]))
+    .attr("rOriginal", d => scales.areaScale(d["Population"]))
     .style("fill", d => scales.colorScale(d["Birth rate bin"]))
     .style("opacity", "0.7")
     .attr("stroke", "black");
@@ -183,8 +238,7 @@ async function drawFunction() {
   });
 
   // options should be considered
-  d3.select("#widgets")
-    // .selectAll(".linearScale")
+  d3.select("#dropDownMenus")
     .selectAll("select")
     .selectAll("option")
     .append("option")
@@ -203,10 +257,17 @@ async function drawFunction() {
 function updateScale(scale, selectedOption) {
   console.log("scale: ", scale);
   console.log("selectedOption: ", selectedOption);
-  let selectedScale = scales[scale].domain([
-    0,
-    d3.max(dataSet.map(row => row[selectedOption]))
-  ]);
+
+  let selectedScale = scales[scale];
+
+  if (columnsWithNegative.has(selectedOption)) {
+    selectedScale.domain([
+      d3.min(dataSet.map(row => row[selectedOption])),
+      d3.max(dataSet.map(row => row[selectedOption]))
+    ]);
+  } else {
+    selectedScale.domain([0, d3.max(dataSet.map(row => row[selectedOption]))]);
+  }
 
   if (scale == "xScale") {
     selectedScale.range([0, dimensions.boundedWidth]);
@@ -229,7 +290,7 @@ function updateScale(scale, selectedOption) {
       .duration(1000)
       .text(selectedOption);
   } else if (scale == "yScale") {
-    selectedScale.range([dimensions.boundedHeight, 0]);
+    selectedScale.range([dimensions.boundedHeight, 0]); // sometimes it should cover negative values.
 
     yAxisGenerator = d3.axisLeft(selectedScale);
 
@@ -242,6 +303,7 @@ function updateScale(scale, selectedOption) {
       .transition()
       .duration(1000)
       .text(selectedOption);
+
     dots
       .data(dataSet)
       .transition()
@@ -249,16 +311,23 @@ function updateScale(scale, selectedOption) {
       .attr("cy", d => selectedScale(d[selectedOption]));
   } else if (scale == "areaScale") {
     // should exclude negative values
-    selectedScale.range([0, d3.max(dataSet.map(row => row[selectedOption]))]);
+    selectedScale.range([0, 50]);
 
     dots
       .data(dataSet)
       .transition()
       .duration(1000)
-      .attr("r", d => selectedScale(d[selectedOption]));
+      .attr("r", d => selectedScale(d[selectedOption]))
+      .attr("rOriginal", d => selectedScale(d[selectedOption]));
   } else if (scale == "colorScale") {
     selectedScale.range(colorScheme5);
   }
+}
+
+function sliderChange() {
+  sliderGenerator.silentValue(
+    document.getElementById("value-simple").value * 0.01
+  );
 }
 
 drawFunction();

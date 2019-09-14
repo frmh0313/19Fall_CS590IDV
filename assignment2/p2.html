@@ -4,17 +4,33 @@
 </head>
 <body>
   <div id="widgets">
-    <label>Y axis</label>
-    <select id="ySelection" class="linearScale"></select>
-    <label>X axis</label>
-    <select id="xSelection" class="linearScale"></select>
-    <label>Color</label>
-    <select id="colorSelection" class="scaleSelection"></select>
-    <label>Area</label>
-    <select id="areaSelection" class="linearScale"></select>
+    <div id="dropDownMenus">
+      <label>Y axis</label>
+      <select id="ySelection" class="linearScale"></select>
+      <label>X axis</label>
+      <select id="xSelection" class="linearScale"></select>
+      <label>Color</label>
+      <select id="colorSelection" class="scaleSelection"></select>
+      <label>Area</label>
+      <select id="areaSelection" class="linearScale"></select>
+    </div>
+    <div id="slider">
+      <label>Area Slider</label>
+      <input
+        id="value-simple"
+        type="number"
+        style="display:inline"
+        min="0"
+        max="300"
+        value="100"
+        onchange="sliderChange()"
+      />
+      <label>%</label>
+    </div>
   </div>
 
   <div id="wrapper"></div>
+  <script src="https://unpkg.com/d3-simple-slider"></script>
   <script type="text/javascript" src="https://d3js.org/d3.v5.min.js"></script>
   <script type="text/javascript" src="assignment2.js"></script>
 </body>
