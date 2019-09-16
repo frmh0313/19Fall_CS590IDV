@@ -28,7 +28,6 @@ let [slider, sliderGenerator, sliderInput] = [];
 let colorScheme;
 
 let dimensions = {
-  // width: window.innerWidth * 0.9,
   width: 800,
   height: 700,
   margin: {
@@ -38,9 +37,6 @@ let dimensions = {
     left: 60
   }
 };
-function findBirthRateBin(value) {
-  return `${value / 10}0-${value / 10}9`;
-}
 
 async function drawFunction() {
   dimensions.boundedHeight =
@@ -84,9 +80,6 @@ async function drawFunction() {
             }
           });
 
-        row["Birth rate bin"] = findBirthRateBin(row["Birth rate"]);
-        birthRateBins.add(row["Birth rate bin"]);
-
         return row;
       });
     });
@@ -98,7 +91,7 @@ async function drawFunction() {
   // margin considering the long numbers
   // translating xAxis considering the size of bubbles. - adding padding? zoom in as slider moves
   // synchronize the value of input element and slider
-  // make the default values of dropdown menus is visualized...
+
   wrapper = d3
     .select("#wrapper")
     .append("svg")
@@ -116,8 +109,6 @@ async function drawFunction() {
     .scaleLinear()
     .domain([0, d3.max(dataSet.map(row => row["GDP per capita"]))])
     .range([0, dimensions.boundedWidth]);
-
-  console.log(`xScale(GDP): ${scales.xScale(30000)}`);
 
   xAxisGenerator = d3.axisBottom(scales.xScale);
 
@@ -158,16 +149,9 @@ async function drawFunction() {
     .domain([0, d3.max(dataSet.map(row => row["Population"]))])
     .range([3, 50]);
 
-  colorScheme5 = ["#DEEDCF", "#74C67A", "#1D9A6C", "#137177", "#0A2F51"];
-
-  birthRateBins = [...birthRateBins].sort(
-    (a, b) => +a.split("-")[0] - +b.split("-")[0]
-  );
-
   scales.colorScale = d3
-    .scaleOrdinal()
-    .domain(birthRateBins)
-    .range(colorScheme5);
+    .scaleSequential(d3.interpolateGreens)
+    .domain([0, d3.max(dataSet.map(row => row["Birth rate"]))]);
 
   sliderGenerator = d3
     .sliderBottom()
@@ -226,16 +210,63 @@ async function drawFunction() {
     .attr("transform", "translate(30, 30)")
     .call(sliderGenerator);
 
+  d3.select("#dropDownMenus")
+    .selectAll("select")
+    .selectAll("option")
+    .append("option")
+    .data(columns.filter(c => c !== "Country"))
+    .join("option")
+    .attr("value", d => d)
+    .text(d => d);
+
+  d3.select("#colorSelection")
+    .append("option")
+    .join("option")
+    .attr("value", "Country")
+    .text("Country");
+
+  // setting default options
+  d3.select("#ySelection")
+    .selectAll("option")
+    .property("selected", d => d == "Life expectancy at birth");
+
+  d3.select("#xSelection")
+    .selectAll("option")
+    .property("selected", d => d == "GDP per capita");
+
+  d3.select("#colorSelection")
+    .selectAll("option")
+    .property("selected", d => d == "Birth rate");
+
+  d3.select("#areaSelection")
+    .selectAll("option")
+    .property("selected", d => d == "Population");
+
   dots = bounds
     .selectAll("circle")
     .data(dataSet)
     .join("circle")
-    .attr("cx", d => scales.xScale(d["GDP per capita"]))
-    .attr("cy", d => scales.yScale(d["Life expectancy at birth"]))
-    .attr("r", d => scales.areaScale(d["Population"]))
-    .attr("rOriginal", d => scales.areaScale(d["Population"]))
-    .style("fill", d => scales.colorScale(d["Birth rate bin"]))
-    .style("opacity", "0.7")
+    .attr("cx", d => {
+      let xSelected = d3.select("#xSelection").property("value");
+      return scales.xScale(d[xSelected]);
+    })
+    .attr("cy", d => {
+      let ySelected = d3.select("#ySelection").property("value");
+      return scales.yScale(d[ySelected]);
+    })
+    .attr("r", d => {
+      let areaSelected = d3.select("#areaSelection").property("value");
+      return scales.areaScale(d[areaSelected]);
+    })
+    .attr("rOriginal", d => {
+      let areaSelected = d3.select("#areaSelection").property("value");
+      return scales.areaScale(d[areaSelected]);
+    })
+    .style("fill", d => {
+      let colorSelected = d3.select("#colorSelection").property("value");
+      return scales.colorScale(d["Birth rate"]);
+    })
+    // .style("opacity", "0.7")
     .attr("stroke", "black");
 
   d3.select("#ySelection").on("change", function() {
@@ -255,20 +286,6 @@ async function drawFunction() {
   });
 
   // options should be considered
-  d3.select("#dropDownMenus")
-    .selectAll("select")
-    .selectAll("option")
-    .append("option")
-    .data(columns.filter(c => c !== "Country"))
-    .join("option")
-    .attr("value", d => d)
-    .text(d => d);
-
-  d3.select("#colorSelection")
-    .append("option")
-    .join("option")
-    .attr("value", "Country")
-    .text("Country");
 }
 
 function updateScale(scale, selectedOption) {
