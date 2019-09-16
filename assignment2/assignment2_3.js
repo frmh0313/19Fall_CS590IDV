@@ -48,9 +48,7 @@ async function drawChart() {
   };
 
   dimensions.size =
-    (dimensions.width - (columns.length + 1) * dimensions.padding) /
-      columns.length +
-    dimensions.padding;
+    (dimensions.width - 3 * dimensions.padding) / 2 + dimensions.padding;
 
   const svg = d3
     .select("#wrapper")
@@ -98,7 +96,7 @@ async function drawChart() {
   const cell = svg
     .append("g")
     .selectAll("g")
-    .data([1, 2, 3, 4])
+    .data(d3.cross([0, 1], [0, 1]))
     .join("g")
     .attr(
       "transform",
