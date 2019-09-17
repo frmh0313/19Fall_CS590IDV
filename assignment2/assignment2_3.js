@@ -2,6 +2,13 @@ let dataSet;
 let columns;
 let columnsWithNegative = new Set();
 
+let cell;
+let [xAxis, xAxisGenerator, xAxisLabel, yAxis, yAxisGenerator, yAxisLabel] = [];
+let dots;
+
+let [slider, sliderGenerator, sliderInput] = [];
+
+let cellHandlers;
 async function drawChart() {
   dataSet = await d3
     .csv("./factbook.csv")
@@ -43,13 +50,20 @@ async function drawChart() {
     });
 
   let dimensions = {
-    width: 964,
+    width: 1600,
+    handler: 250,
     padding: 30
   };
 
   dimensions.size =
-    (dimensions.width - 3 * dimensions.padding) / 2 + dimensions.padding;
+    (dimensions.width -
+      2 * dimensions.handler -
+      3 * dimensions.padding -
+      dimensions.handler) /
+      2 +
+    dimensions.padding;
 
+  console.log("dimensions.size: ", dimensions.size);
   const wrapper = d3
     .select("#wrapper")
     .append("div")
@@ -86,7 +100,7 @@ async function drawChart() {
       ]);
   });
 
-  const cell = wrapper
+  cell = wrapper
     .append("div")
     .selectAll("div")
     .data(d3.cross([0, 1], [0, 1]))
@@ -95,32 +109,52 @@ async function drawChart() {
     .each(function([i, j]) {
       d3.select(this)
         .style("top", `${i * dimensions.size}px`)
-        .style("left", `${j * dimensions.size}px`);
+        .style(
+          "left",
+          `${j * (dimensions.size + dimensions.padding + dimensions.handler)}px`
+        )
+        .style("width", "650px")
+        .style("float", "left");
 
       if (j == 0) {
         d3.select(this)
           .append("div")
-          .attr("class", "dropDownMenus")
-          .style("float", "left");
+          .attr("class", "cellHandlers")
+          .attr("id", `cellHandler${i}${j}`)
+          .style("float", "left")
+          .style("padding-left", "10px")
+          .style("padding-top", "10px")
+          .style("width", "250px");
+        // .attr("width", 120);
+
         d3.select(this)
           .append("svg")
           .attr("class", "svgsInCell")
-          .style("float", "left");
+          .attr("id", `canvas${i}${j}`)
+          .style("float", "left")
+          .attr("width", dimensions.size - dimensions.padding)
+          .attr("height", dimensions.size - dimensions.padding);
       } else if (j == 1) {
         d3.select(this)
           .append("svg")
           .attr("class", "svgsInCell")
-          .style("float", "left");
+          .attr("id", `canvas${i}${j}`)
+          .style("float", "left")
+          .attr("width", dimensions.size - dimensions.padding)
+          .attr("height", dimensions.size - dimensions.padding);
+
         d3.select(this)
           .append("div")
-          .attr("class", "dropDownMenus")
-          .style("float", "right");
+          .attr("class", "cellHandlers")
+          .attr("id", `cellHandler${i}${j}`)
+          .style("float", "right")
+          .style("width", "250px");
       }
     });
 
   const svgs = cell.selectAll(".svgsInCell");
 
-  const cellDropDown = cell.selectAll(".dropDownMenus");
+  cellHandlers = cell.selectAll(".cellHandlers");
 
   svgs
     .append("rect")
@@ -128,14 +162,15 @@ async function drawChart() {
     .attr("stroke", "#aaa")
     .attr("x", dimensions.padding / 2 + 0.5)
     .attr("y", dimensions.padding / 2 + 0.5)
-    .attr("width", dimensions.size - dimensions.padding)
-    .attr("height", dimensions.size - dimensions.padding);
+    .attr("width", 350)
+    .attr("height", 350);
 
-  const yLabels = cellDropDown.append("label").text("yAxis");
+  const yLabels = cellHandlers.append("label").text("yAxis");
 
-  const ySelections = cellDropDown
+  const ySelections = cellHandlers
     .append("select")
     .attr("class", "ySelections")
+    .attr("id", ([i, j]) => `ySelection${i}${j}`)
     .selectAll("option")
     .append("option")
     .data(columns.filter(c => c != "Country"))
@@ -143,11 +178,12 @@ async function drawChart() {
     .attr("value", d => d)
     .text(d => d);
 
-  const xLabels = cellDropDown.append("labe").text("xAxis");
+  const xLabels = cellHandlers.append("labe").text("xAxis");
 
-  const xSelections = cellDropDown
+  const xSelections = cellHandlers
     .append("select")
     .attr("class", "xSelections")
+    .attr("id", ([i, j]) => `xSelection${i}${j}`)
     .selectAll("option")
     .append("option")
     .data(columns.filter(c => c != "Country"))
@@ -155,11 +191,12 @@ async function drawChart() {
     .attr("value", d => d)
     .text(d => d);
 
-  const areaLabels = cellDropDown.append("label").text("Area");
+  const areaLabels = cellHandlers.append("label").text("Area");
 
-  const areaSelections = cellDropDown
+  const areaSelections = cellHandlers
     .append("select") // maybe should exclude columns with negative values
     .attr("class", "areaSelections")
+    .attr("id", ([i, j]) => `areaSelection${i}${j}`)
     .selectAll("option")
     .append("option")
     .data(columns)
@@ -167,11 +204,12 @@ async function drawChart() {
     .attr("value", d => d)
     .text(d => d);
 
-  const colorLabels = cellDropDown.append("label").text("Color");
+  const colorLabels = cellHandlers.append("label").text("Color");
 
-  const colorSelections = cellDropDown
+  const colorSelections = cellHandlers
     .append("select")
     .attr("class", "colorSelections")
+    .attr("id", ([i, j]) => `colorSelection${i}${j}`)
     .selectAll("option")
     .append("option")
     .data(columns)
@@ -179,7 +217,87 @@ async function drawChart() {
     .attr("value", d => d)
     .text(d => d);
 
-  cellDropDown.selectAll("label, select").style("display", "block");
+  cellHandlers.selectAll("label, select").style("display", "block");
+
+  // slider
+  cell.each(function([i, j]) {
+    let slider = d3
+      .select(`#cellHandler${i}${j}`)
+      .append("div")
+      .attr("class", "slider")
+      .attr("id", `slider${i}${j}`);
+
+    slider.append("label").text("Area Slider");
+
+    let sliderInput = slider
+      .append("input")
+      .attr("class", "value-simples")
+      .attr("id", `value-simple${i}${j}`)
+      .attr("value", 100)
+      .style("width", "100px");
+
+    slider.append("label").text("%");
+
+    let sliderGenerator = d3
+      .sliderBottom()
+      .min(0)
+      .max(3)
+      .width(200)
+      .tickFormat(d3.format(".2%"))
+      .ticks(4)
+      .default(1)
+      .handle(
+        d3
+          .symbol()
+          .type(d3.symbolCircle)
+          .size(100)
+      )
+      .fill("skyblue");
+
+    sliderInput.on("change", function() {
+      let inputValue = this.value;
+      sliderGenerator.silentValue(inputValue / 100);
+    });
+
+    sliderGenerator.on("onchange", val => {
+      sliderInput.attr("value", null);
+
+      sliderInput
+        .attr("text", (val * 100).toFixed(2))
+        .property("value", (val * 100).toFixed(2));
+    });
+
+    slider
+      .append("svg")
+      .attr("width", 250)
+      .attr("height", 100)
+      .style("display", "block")
+      .append("g")
+      .attr("transform", "translate(30, 30)")
+      .call(sliderGenerator);
+  });
+
+  cell.each(function([i, j]) {
+    let that = this;
+    console.log("cell: ", that);
+    d3.select(`#ySelection${i}${j}`).on("change", function() {
+      console.log(`ySelection${i}${j} selected`);
+      console.log("this: ", this);
+      update(that, this.value, i, j);
+    });
+  });
 }
 
 drawChart();
+
+function update(cell, selectOption, xIndex, yIndex) {
+  console.log("selected selection: ", `ySelection${xIndex}${yIndex}`);
+  console.log("cell: ", cell);
+  console.log("d3 select cell: ", d3.select(cell).select("svg"));
+
+  let insertedDiv = d3
+    .select(cell)
+    .select("rect")
+    .append("p")
+    .text("added");
+}
