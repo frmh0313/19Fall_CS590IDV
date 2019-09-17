@@ -113,10 +113,9 @@ async function drawChart() {
     .style("text-anchor", "middle");
 
   const xScale = d3
-    .scaleBand()
-    .domain([...years()])
-    .rangeRound([0, dimensions.boundedWidth])
-    .padding(0.9);
+    .scaleLinear()
+    .domain([70, 82])
+    .rangeRound([0, dimensions.boundedWidth]);
 
   const xAxisGenerator = d3.axisBottom(xScale);
 
