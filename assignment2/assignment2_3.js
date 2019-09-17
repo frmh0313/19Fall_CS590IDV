@@ -111,6 +111,76 @@ async function drawChart() {
     .attr("y", dimensions.padding / 2 + 0.5)
     .attr("width", dimensions.size - dimensions.padding)
     .attr("height", dimensions.size - dimensions.padding);
+
+  const cellDropDown = cell
+    .append("g")
+    .append("div")
+    .attr("class", "dropDownMenus");
+
+  const yLabels = cellDropDown.append("label").text("yAxis");
+
+  const ySelections = cellDropDown
+    .append("select")
+    .attr("class", "ySelections")
+    .selectAll("option")
+    .append("option")
+    .data(columns.filter(c => c != "Country"))
+    .join("option")
+    .attr("value", d => d)
+    .text(d => d);
+
+  const xLabels = cellDropDown.append("labe").text("xAxis");
+
+  const xSelections = cellDropDown
+    .append("select")
+    .attr("class", "xSelections")
+    .selectAll("option")
+    .append("option")
+    .data(columns.filter(c => c != "Country"))
+    .join("option")
+    .attr("value", d => d)
+    .text(d => d);
+
+  const areaLabels = cellDropDown.append("label").text("Area");
+
+  const areaSelections = cellDropDown
+    .append("select") // maybe should exclude columns with negative values
+    .attr("class", "areaSelections")
+    .selectAll("option")
+    .append("option")
+    .data(columns)
+    .join("option")
+    .attr("value", d => d)
+    .text(d => d);
+
+  const colorLabels = cellDropDown.append("label").text("Color");
+
+  const colorSelections = cellDropDown
+    .append("select")
+    .attr("class", "colorSelections")
+    .selectAll("option")
+    .append("option")
+    .data(columns)
+    .join("option")
+    .attr("value", d => d)
+    .text(d => d);
+
+  // cellDropDown
+  //   .append("g")
+  //   .attr("class", "ySelectionEach")
+  //   .append("label")
+  //   .text("yAxis");
+
+  // d3.selectAll(".ySelectionEach")
+  //   .selectAll("select")
+  //   .append("select")
+  //   .selectAll("select")
+  //   .selectAll("option")
+  //   .append("option")
+  //   .data(columns.filter(c => c !== "Country"))
+  //   .join("option")
+  //   .attr("value", d => d)
+  //   .text(d => d);
 }
 
 drawChart();
