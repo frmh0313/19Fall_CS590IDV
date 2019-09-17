@@ -8,6 +8,11 @@ let dots;
 
 let [slider, sliderGenerator, sliderInput] = [];
 
+let xScales = {};
+let yScales = {};
+let colorScales = {};
+let areaScales = {};
+
 let cellHandlers;
 async function drawChart() {
   dataSet = await d3
@@ -63,14 +68,14 @@ async function drawChart() {
       2 +
     dimensions.padding;
 
-  console.log("dimensions.size: ", dimensions.size);
+  // console.log("dimensions.size: ", dimensions.size);
+
   const wrapper = d3
     .select("#wrapper")
     .append("div")
     .attr("width", dimensions.width)
     .attr("height", dimensions.width + 120);
 
-  const xScales = {};
   columns.forEach(c => {
     let xScale;
     if (columnsWithNegative.has(c)) {
@@ -89,7 +94,19 @@ async function drawChart() {
     ]);
   });
 
-  const yScales = {};
+  const xAxis = function(g) {
+    const axis = d3
+      .axisBottom()
+      .ticks(6)
+      .tickSize(dimensions.size * columns.length);
+
+    // Continue from putting xaxes.
+    return g
+      .selectAll("g")
+      .data(xScales)
+      .join("g")
+      .attr("transform", (d, i) => `translate`);
+  };
 
   Object.entries(xScales).forEach(([column, scale]) => {
     yScales[column] = scale
@@ -100,6 +117,7 @@ async function drawChart() {
       ]);
   });
 
+  // Drawing four cells
   cell = wrapper
     .append("div")
     .selectAll("div")
@@ -153,6 +171,10 @@ async function drawChart() {
     });
 
   const svgs = cell.selectAll(".svgsInCell");
+
+  svgs.append("g").call(xAxis);
+
+  svgs.append("g").call(yAxis);
 
   cellHandlers = cell.selectAll(".cellHandlers");
 
@@ -219,6 +241,23 @@ async function drawChart() {
 
   cellHandlers.selectAll("label, select").style("display", "block");
 
+  // setting default value
+  d3.selectAll(".ySelections")
+    .selectAll("option")
+    .property("selected", d => d == "Life expectancy at birth");
+
+  d3.selectAll(".xSelections")
+    .selectAll("option")
+    .property("selected", d => d == "GDP per capita");
+
+  d3.selectAll(".colorSelections")
+    .selectAll("option")
+    .property("selected", d => d == "Birth rate");
+
+  d3.selectAll(".areaSelections")
+    .selectAll("option")
+    .property("selected", d => d == "Population");
+
   // slider
   cell.each(function([i, j]) {
     let slider = d3
@@ -278,11 +317,25 @@ async function drawChart() {
   });
 
   cell.each(function([i, j]) {
+    d3.select(`#canvas${i}${j}`)
+      .selectAll("circle")
+      .data(dataSet)
+      .join("circle")
+      .attr("cx", d => {
+        let selected = d3.select(`#xSelection${i}${j}`).property("value");
+        return xScales[selected](d[selected]);
+      })
+      .attr("cy", d => {
+        let selected = d3.select(`#ySelection${i}${j}`).property("value");
+        return yScales[selected](d[selected]);
+      })
+      .attr("r", 3.5)
+      .attr("fill", "skyblue");
+  });
+
+  cell.each(function([i, j]) {
     let that = this;
-    console.log("cell: ", that);
     d3.select(`#ySelection${i}${j}`).on("change", function() {
-      console.log(`ySelection${i}${j} selected`);
-      console.log("this: ", this);
       update(that, this.value, i, j);
     });
   });
