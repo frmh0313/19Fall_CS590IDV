@@ -50,18 +50,11 @@ async function drawChart() {
   dimensions.size =
     (dimensions.width - 3 * dimensions.padding) / 2 + dimensions.padding;
 
-  const svg = d3
+  const wrapper = d3
     .select("#wrapper")
-    .append("svg")
+    .append("div")
     .attr("width", dimensions.width)
-    .attr("height", dimensions.width + 120)
-    .attr(
-      "viewBox",
-      `${-dimensions.padding} 60 ${dimensions.width} ${dimensions.width}`
-    )
-    .attr("transform", `translate(${dimensions.padding}, 60)`)
-    .style("max-width", "100%")
-    .style("height", "auto");
+    .attr("height", dimensions.width + 120);
 
   const xScales = {};
   columns.forEach(c => {
@@ -93,17 +86,43 @@ async function drawChart() {
       ]);
   });
 
-  const cell = svg
-    .append("g")
-    .selectAll("g")
+  const cell = wrapper
+    .append("div")
+    .selectAll("div")
     .data(d3.cross([0, 1], [0, 1]))
-    .join("g")
-    .attr(
-      "transform",
-      ([i, j]) => `translate(${i * dimensions.size}, ${j * dimensions.size})`
-    );
+    .join("div")
+    .style("position", "absolute")
+    .each(function([i, j]) {
+      d3.select(this)
+        .style("top", `${i * dimensions.size}px`)
+        .style("left", `${j * dimensions.size}px`);
 
-  cell
+      if (j == 0) {
+        d3.select(this)
+          .append("div")
+          .attr("class", "dropDownMenus")
+          .style("float", "left");
+        d3.select(this)
+          .append("svg")
+          .attr("class", "svgsInCell")
+          .style("float", "left");
+      } else if (j == 1) {
+        d3.select(this)
+          .append("svg")
+          .attr("class", "svgsInCell")
+          .style("float", "left");
+        d3.select(this)
+          .append("div")
+          .attr("class", "dropDownMenus")
+          .style("float", "right");
+      }
+    });
+
+  const svgs = cell.selectAll(".svgsInCell");
+
+  const cellDropDown = cell.selectAll(".dropDownMenus");
+
+  svgs
     .append("rect")
     .attr("fill", "none")
     .attr("stroke", "#aaa")
@@ -111,11 +130,6 @@ async function drawChart() {
     .attr("y", dimensions.padding / 2 + 0.5)
     .attr("width", dimensions.size - dimensions.padding)
     .attr("height", dimensions.size - dimensions.padding);
-
-  const cellDropDown = cell
-    .append("g")
-    .append("div")
-    .attr("class", "dropDownMenus");
 
   const yLabels = cellDropDown.append("label").text("yAxis");
 
@@ -165,22 +179,7 @@ async function drawChart() {
     .attr("value", d => d)
     .text(d => d);
 
-  // cellDropDown
-  //   .append("g")
-  //   .attr("class", "ySelectionEach")
-  //   .append("label")
-  //   .text("yAxis");
-
-  // d3.selectAll(".ySelectionEach")
-  //   .selectAll("select")
-  //   .append("select")
-  //   .selectAll("select")
-  //   .selectAll("option")
-  //   .append("option")
-  //   .data(columns.filter(c => c !== "Country"))
-  //   .join("option")
-  //   .attr("value", d => d)
-  //   .text(d => d);
+  cellDropDown.selectAll("label, select").style("display", "block");
 }
 
 drawChart();
