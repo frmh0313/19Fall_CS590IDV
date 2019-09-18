@@ -2,6 +2,19 @@ let dataSet;
 let columns;
 let columnsWithNegative = new Set();
 
+let cell;
+let [xAxis, xAxisGenerator, xAxisLabel, yAxis, yAxisGenerator, yAxisLabel] = [];
+let dots;
+
+let [slider, sliderGenerator, sliderInput] = [];
+
+let xScales = {};
+let yScales = {};
+let colorScales = {};
+let areaScales = {};
+
+let cellHandlers;
+
 async function drawChart() {
   dataSet = await d3
     .csv("./factbook.csv")
@@ -43,27 +56,221 @@ async function drawChart() {
     });
 
   let dimensions = {
-    width: 964,
-    padding: 30
+    width: 1540,
+    handler: 250,
+    padding: 15
   };
 
   dimensions.size =
-    (dimensions.width - 3 * dimensions.padding) / 2 + dimensions.padding;
+    (dimensions.width -
+      2 * dimensions.handler -
+      3 * dimensions.padding -
+      dimensions.handler) /
+      2 +
+    dimensions.padding;
 
-  const svg = d3
+  const wrapper = d3
     .select("#wrapper")
-    .append("svg")
+    .append("div")
     .attr("width", dimensions.width)
-    .attr("height", dimensions.width + 120)
-    .attr(
-      "viewBox",
-      `${-dimensions.padding} 60 ${dimensions.width} ${dimensions.width}`
-    )
-    .attr("transform", `translate(${dimensions.padding}, 60)`)
-    .style("max-width", "100%")
-    .style("height", "auto");
+    .attr("height", dimensions.width + 120);
 
-  const xScales = {};
+  // Drawing four cells
+  cell = wrapper
+    .append("div")
+    .selectAll("div")
+    .data(d3.cross([0, 1], [0, 1]))
+    .join("div")
+    .style("position", "absolute")
+    .each(function([i, j]) {
+      d3.select(this)
+        .style("top", `${i * dimensions.size}px`)
+        .style(
+          "left",
+          `${j * (dimensions.size + dimensions.padding + dimensions.handler)}px`
+        )
+        .style("width", "650px")
+        .style("float", "left");
+
+      if (j == 0) {
+        d3.select(this)
+          .append("div")
+          .attr("class", "cellHandlers")
+          .attr("id", `cellHandler${i}${j}`)
+          .style("float", "left")
+          .style("padding-left", "10px")
+          .style("padding-top", "10px")
+          .style("width", "250px");
+        // .attr("width", 120);
+
+        d3.select(this)
+          .append("svg")
+          .attr("class", "svgsInCell")
+          .attr("id", `canvas${i}${j}`)
+          .style("float", "left")
+          .attr("width", dimensions.size - dimensions.padding)
+          .attr("height", dimensions.size - dimensions.padding);
+      } else if (j == 1) {
+        d3.select(this)
+          .append("svg")
+          .attr("class", "svgsInCell")
+          .attr("id", `canvas${i}${j}`)
+          .style("float", "left")
+          .attr("width", dimensions.size - dimensions.padding)
+          .attr("height", dimensions.size - dimensions.padding);
+
+        d3.select(this)
+          .append("div")
+          .attr("class", "cellHandlers")
+          .attr("id", `cellHandler${i}${j}`)
+          .style("float", "right")
+          .style("width", "250px");
+      }
+    });
+
+  const svgs = cell.selectAll(".svgsInCell");
+
+  cellHandlers = cell.selectAll(".cellHandlers");
+
+  // rect on svgs
+  // svgs
+  //   .append("rect")
+  //   .attr("fill", "none")
+  //   .attr("stroke", "#aaa")
+  //   .attr("x", dimensions.padding / 2 + 0.5)
+  //   .attr("y", dimensions.padding / 2 + 0.5)
+  //   .attr("width", 350)
+  //   .attr("height", 350);
+
+  const yLabels = cellHandlers.append("label").text("yAxis");
+
+  const ySelections = cellHandlers
+    .append("select")
+    .attr("class", "ySelections")
+    .attr("id", ([i, j]) => `ySelection${i}${j}`)
+    .selectAll("option")
+    .append("option")
+    .data(columns.filter(c => c != "Country"))
+    .join("option")
+    .attr("value", d => d)
+    .text(d => d);
+
+  const xLabels = cellHandlers.append("labe").text("xAxis");
+
+  const xSelections = cellHandlers
+    .append("select")
+    .attr("class", "xSelections")
+    .attr("id", ([i, j]) => `xSelection${i}${j}`)
+    .selectAll("option")
+    .append("option")
+    .data(columns.filter(c => c != "Country"))
+    .join("option")
+    .attr("value", d => d)
+    .text(d => d);
+
+  const areaLabels = cellHandlers.append("label").text("Area");
+
+  const areaSelections = cellHandlers
+    .append("select") // maybe should exclude columns with negative values
+    .attr("class", "areaSelections")
+    .attr("id", ([i, j]) => `areaSelection${i}${j}`)
+    .selectAll("option")
+    .append("option")
+    .data(columns.filter(c => !columnsWithNegative.has(c)))
+    .join("option")
+    .attr("value", d => d)
+    .text(d => d);
+
+  const colorLabels = cellHandlers.append("label").text("Color");
+
+  const colorSelections = cellHandlers
+    .append("select")
+    .attr("class", "colorSelections")
+    .attr("id", ([i, j]) => `colorSelection${i}${j}`)
+    .selectAll("option")
+    .append("option")
+    .data(columns)
+    .join("option")
+    .attr("value", d => d)
+    .text(d => d);
+
+  cellHandlers.selectAll("label, select").style("display", "block");
+  // setting default value
+  d3.selectAll(".ySelections")
+    .selectAll("option")
+    .property("selected", d => d == "Life expectancy at birth");
+
+  d3.selectAll(".xSelections")
+    .selectAll("option")
+    .property("selected", d => d == "GDP per capita");
+
+  d3.selectAll(".colorSelections")
+    .selectAll("option")
+    .property("selected", d => d == "Birth rate");
+
+  d3.selectAll(".areaSelections")
+    .selectAll("option")
+    .property("selected", d => d == "Population");
+  // slider
+  cell.each(function([i, j]) {
+    let slider = d3
+      .select(`#cellHandler${i}${j}`)
+      .append("div")
+      .attr("class", "slider")
+      .attr("id", `slider${i}${j}`);
+
+    slider.append("label").text("Area Slider");
+
+    let sliderInput = slider
+      .append("input")
+      .attr("class", "value-simples")
+      .attr("id", `value-simple${i}${j}`)
+      .attr("value", 100)
+      .style("width", "100px");
+
+    slider.append("label").text("%");
+
+    let sliderGenerator = d3
+      .sliderBottom()
+      .min(0)
+      .max(3)
+      .width(200)
+      .tickFormat(d3.format(".2%"))
+      .ticks(4)
+      .default(1)
+      .handle(
+        d3
+          .symbol()
+          .type(d3.symbolCircle)
+          .size(100)
+      )
+      .fill("skyblue");
+
+    sliderInput.on("change", function() {
+      let inputValue = this.value;
+      sliderGenerator.silentValue(inputValue / 100);
+    });
+
+    sliderGenerator.on("onchange", val => {
+      sliderInput.attr("value", null);
+
+      sliderInput
+        .attr("text", (val * 100).toFixed(2))
+        .property("value", (val * 100).toFixed(2));
+    });
+
+    slider
+      .append("svg")
+      .attr("width", 250)
+      .attr("height", 100)
+      .style("display", "block")
+      .append("g")
+      .attr("transform", "translate(30, 30)")
+      .call(sliderGenerator);
+  });
+
+  // Scales
+  // xScales
   columns.forEach(c => {
     let xScale;
     if (columnsWithNegative.has(c)) {
@@ -77,110 +284,131 @@ async function drawChart() {
       xScale = d3.scaleLinear().domain([0, d3.max(dataSet.map(row => row[c]))]);
     }
     xScales[c] = xScale.range([
-      dimensions.padding / 2,
-      dimensions.size - dimensions.padding / 2
+      dimensions.padding / 2 + 1,
+      dimensions.size - dimensions.padding * 3
     ]);
   });
 
-  const yScales = {};
-
+  // yScales
   Object.entries(xScales).forEach(([column, scale]) => {
     yScales[column] = scale
       .copy()
       .range([
-        dimensions.size - dimensions.padding / 2,
-        dimensions.padding / 2
+        dimensions.size - 2 * dimensions.padding,
+        2 * dimensions.padding
       ]);
   });
 
-  const cell = svg
-    .append("g")
-    .selectAll("g")
-    .data(d3.cross([0, 1], [0, 1]))
-    .join("g")
-    .attr(
-      "transform",
-      ([i, j]) => `translate(${i * dimensions.size}, ${j * dimensions.size})`
-    );
+  // color scales
+  columns.forEach(c => {
+    let colorScale;
+    if (columnsWithNegative.has(c)) {
+      colorScale = d3
+        .scaleSequential(d3.interpolateRdBu)
+        .domain([
+          d3.min(dataSet.map(row => row[c])),
+          d3.max(dataSet.map(row => row[c]))
+        ]);
+    } else {
+      colorScale = d3
+        .scaleSequential(d3.interpolateBlues)
+        .domain([0, d3.max(dataSet.map(row => row[c]))]);
+    }
 
-  cell
-    .append("rect")
-    .attr("fill", "none")
-    .attr("stroke", "#aaa")
-    .attr("x", dimensions.padding / 2 + 0.5)
-    .attr("y", dimensions.padding / 2 + 0.5)
-    .attr("width", dimensions.size - dimensions.padding)
-    .attr("height", dimensions.size - dimensions.padding);
+    colorScales[c] = colorScale;
+  });
 
-  const cellDropDown = cell
-    .append("g")
-    .append("div")
-    .attr("class", "dropDownMenus");
+  // area scales
+  columns
+    .filter(c => !columnsWithNegative.has(c))
+    .forEach(c => {
+      let areaScale;
+      areaScale = d3
+        .scaleLinear()
+        .domain([0, d3.max(dataSet.map(row => row[c]))])
+        .range([3, 50]);
+      areaScales[c] = areaScale;
+    });
 
-  const yLabels = cellDropDown.append("label").text("yAxis");
+  // dots
+  cell.each(function([i, j]) {
+    d3.select(`#canvas${i}${j}`)
+      .selectAll("circle")
+      .data(dataSet)
+      .join("circle")
+      .attr("cx", d => {
+        let xSelected = d3.select(`#xSelection${i}${j}`).property("value");
+        return xScales[xSelected](d[xSelected]);
+      })
+      .attr("cy", d => {
+        let ySelected = d3.select(`#ySelection${i}${j}`).property("value");
+        return yScales[ySelected](d[ySelected]);
+      })
+      .attr("r", d => {
+        let areaSelected = d3
+          .select(`#areaSelection${i}${j}`)
+          .property("value");
+        return areaScales[areaSelected](d[areaSelected]);
+      })
+      .attr("rOriginal", d => {
+        let areaSelected = d3
+          .select(`#areaSelection${i}${j}`)
+          .property("value");
+        return areaScales[areaSelected](d[areaSelected]);
+      })
+      .attr("fill", d => {
+        let colorSelected = d3
+          .select(`#colorSelection${i}${j}`)
+          .property("value");
+        return colorScales[colorSelected](d[colorSelected]);
+      })
+      .attr("transform", `translate(18.5, 0)`);
+  });
+  // axes
+  cell.each(function([i, j]) {
+    console.log(`cell number: [${i}, ${j}]`);
+    const xAxisGenerator = d3
+      .axisBottom(xScales[d3.select(`#xSelection${i}${j}`).property("value")])
+      .ticks(6);
 
-  const ySelections = cellDropDown
-    .append("select")
-    .attr("class", "ySelections")
-    .selectAll("option")
-    .append("option")
-    .data(columns.filter(c => c != "Country"))
-    .join("option")
-    .attr("value", d => d)
-    .text(d => d);
+    const xAxis = d3
+      .select(`#canvas${i}${j}`)
+      .append("g")
+      .call(xAxisGenerator)
+      .attr(
+        "transform",
+        `translate(15, ${dimensions.size - 3 * dimensions.padding})`
+      );
 
-  const xLabels = cellDropDown.append("labe").text("xAxis");
+    const yAxisGenerator = d3
+      .axisLeft(yScales[d3.select(`#ySelection${i}${j}`).property("value")])
+      .ticks(6);
 
-  const xSelections = cellDropDown
-    .append("select")
-    .attr("class", "xSelections")
-    .selectAll("option")
-    .append("option")
-    .data(columns.filter(c => c != "Country"))
-    .join("option")
-    .attr("value", d => d)
-    .text(d => d);
+    const yAxis = d3
+      .select(`#canvas${i}${j}`)
+      .append("g")
+      .call(yAxisGenerator)
+      .attr("transform", `translate(23.5, -${dimensions.padding})`);
+  });
 
-  const areaLabels = cellDropDown.append("label").text("Area");
-
-  const areaSelections = cellDropDown
-    .append("select") // maybe should exclude columns with negative values
-    .attr("class", "areaSelections")
-    .selectAll("option")
-    .append("option")
-    .data(columns)
-    .join("option")
-    .attr("value", d => d)
-    .text(d => d);
-
-  const colorLabels = cellDropDown.append("label").text("Color");
-
-  const colorSelections = cellDropDown
-    .append("select")
-    .attr("class", "colorSelections")
-    .selectAll("option")
-    .append("option")
-    .data(columns)
-    .join("option")
-    .attr("value", d => d)
-    .text(d => d);
-
-  // cellDropDown
-  //   .append("g")
-  //   .attr("class", "ySelectionEach")
-  //   .append("label")
-  //   .text("yAxis");
-
-  // d3.selectAll(".ySelectionEach")
-  //   .selectAll("select")
-  //   .append("select")
-  //   .selectAll("select")
-  //   .selectAll("option")
-  //   .append("option")
-  //   .data(columns.filter(c => c !== "Country"))
-  //   .join("option")
-  //   .attr("value", d => d)
-  //   .text(d => d);
+  cell.each(function([i, j]) {
+    let that = this;
+    d3.select(`#ySelection${i}${j}`).on("change", function() {
+      update(that, this.value, i, j);
+    });
+  });
 }
 
 drawChart();
+
+function update(cell, selectOption, xIndex, yIndex) {
+  console.log("selected selection: ", `ySelection${xIndex}${yIndex}`);
+  console.log("cell: ", cell);
+  console.log("d3 select cell: ", d3.select(cell).select("svg"));
+
+  let insertedDiv = d3
+    .select(cell)
+    .select("rect")
+    .append("p")
+    .text("added");
+}
