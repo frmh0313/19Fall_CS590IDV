@@ -4,17 +4,38 @@ let columnsWithNegative = new Set();
 
 let cell;
 let [xAxis, xAxisGenerator, xAxisLabel, yAxis, yAxisGenerator, yAxisLabel] = [];
-let dots;
+
+let xAxes = [[], []];
+let yAxes = [[], []];
+let xAxesLabels = [[], []];
+let yAxesLabels = [[], []];
+let dots = [[], []];
 
 let [slider, sliderGenerator, sliderInput] = [];
 
-let xScales = {};
-let yScales = {};
-let colorScales = {};
-let areaScales = {};
+let scales = { xScales: {}, yScales: {}, colorScales: {}, areaScales: {} };
 
 let cellHandlers;
 
+let dimensions = {
+  width: 1540,
+  handler: 250,
+  padding: 15
+};
+
+dimensions.size =
+  (dimensions.width -
+    2 * dimensions.handler -
+    3 * dimensions.padding -
+    dimensions.handler) /
+    2 +
+  dimensions.padding;
+
+// TODO
+// 1. svg size adjustment for labels
+// 2. add legends
+// 3. Layout..
+// 4. Drawing rectangles over svgs.
 async function drawChart() {
   dataSet = await d3
     .csv("./factbook.csv")
@@ -55,20 +76,6 @@ async function drawChart() {
       });
     });
 
-  let dimensions = {
-    width: 1540,
-    handler: 250,
-    padding: 15
-  };
-
-  dimensions.size =
-    (dimensions.width -
-      2 * dimensions.handler -
-      3 * dimensions.padding -
-      dimensions.handler) /
-      2 +
-    dimensions.padding;
-
   const wrapper = d3
     .select("#wrapper")
     .append("div")
@@ -101,7 +108,6 @@ async function drawChart() {
           .style("padding-left", "10px")
           .style("padding-top", "10px")
           .style("width", "250px");
-        // .attr("width", 120);
 
         d3.select(this)
           .append("svg")
@@ -139,8 +145,8 @@ async function drawChart() {
   //   .attr("stroke", "#aaa")
   //   .attr("x", dimensions.padding / 2 + 0.5)
   //   .attr("y", dimensions.padding / 2 + 0.5)
-  //   .attr("width", 350)
-  //   .attr("height", 350);
+  //   .attr("width", 360)
+  //   .attr("height", 360);
 
   const yLabels = cellHandlers.append("label").text("yAxis");
 
@@ -244,19 +250,32 @@ async function drawChart() {
           .type(d3.symbolCircle)
           .size(100)
       )
-      .fill("skyblue");
+      .fill("skyblue")
+      .on("onchange", val => {
+        sliderInput.attr("value", null);
+
+        sliderInput
+          .attr("text", (val * 100).toFixed(2))
+          .property("value", (val * 100).toFixed(2));
+
+        dots[i][j]
+          .transition()
+          .duration(1000)
+          .attr("r", function() {
+            return d3.select(this).attr("rOriginal") * val;
+          });
+      });
 
     sliderInput.on("change", function() {
       let inputValue = this.value;
       sliderGenerator.silentValue(inputValue / 100);
-    });
 
-    sliderGenerator.on("onchange", val => {
-      sliderInput.attr("value", null);
-
-      sliderInput
-        .attr("text", (val * 100).toFixed(2))
-        .property("value", (val * 100).toFixed(2));
+      dots[i][j]
+        .transition()
+        .duration(1000)
+        .attr("r", function() {
+          return (d3.select(this).attr("rOriginal") * inputValue) / 100;
+        });
     });
 
     slider
@@ -283,15 +302,15 @@ async function drawChart() {
     } else {
       xScale = d3.scaleLinear().domain([0, d3.max(dataSet.map(row => row[c]))]);
     }
-    xScales[c] = xScale.range([
+    scales.xScales[c] = xScale.range([
       dimensions.padding / 2 + 1,
       dimensions.size - dimensions.padding * 3
     ]);
   });
 
   // yScales
-  Object.entries(xScales).forEach(([column, scale]) => {
-    yScales[column] = scale
+  Object.entries(scales.xScales).forEach(([column, scale]) => {
+    scales.yScales[column] = scale
       .copy()
       .range([
         dimensions.size - 2 * dimensions.padding,
@@ -306,16 +325,16 @@ async function drawChart() {
       colorScale = d3
         .scaleSequential(d3.interpolateRdBu)
         .domain([
-          d3.min(dataSet.map(row => row[c])),
-          d3.max(dataSet.map(row => row[c]))
+          d3.max(dataSet.map(row => row[c])),
+          d3.min(dataSet.map(row => row[c]))
         ]);
     } else {
       colorScale = d3
         .scaleSequential(d3.interpolateBlues)
-        .domain([0, d3.max(dataSet.map(row => row[c]))]);
+        .domain([d3.max(dataSet.map(row => row[c])), 0]);
     }
 
-    colorScales[c] = colorScale;
+    scales.colorScales[c] = colorScale;
   });
 
   // area scales
@@ -327,48 +346,52 @@ async function drawChart() {
         .scaleLinear()
         .domain([0, d3.max(dataSet.map(row => row[c]))])
         .range([3, 50]);
-      areaScales[c] = areaScale;
+      scales.areaScales[c] = areaScale;
     });
 
   // dots
   cell.each(function([i, j]) {
-    d3.select(`#canvas${i}${j}`)
+    dots[i][j] = d3
+      .select(`#canvas${i}${j}`)
       .selectAll("circle")
       .data(dataSet)
       .join("circle")
       .attr("cx", d => {
         let xSelected = d3.select(`#xSelection${i}${j}`).property("value");
-        return xScales[xSelected](d[xSelected]);
+        return scales.xScales[xSelected](d[xSelected]);
       })
       .attr("cy", d => {
         let ySelected = d3.select(`#ySelection${i}${j}`).property("value");
-        return yScales[ySelected](d[ySelected]);
+        return scales.yScales[ySelected](d[ySelected]);
       })
       .attr("r", d => {
         let areaSelected = d3
           .select(`#areaSelection${i}${j}`)
           .property("value");
-        return areaScales[areaSelected](d[areaSelected]);
+        return scales.areaScales[areaSelected](d[areaSelected]);
       })
       .attr("rOriginal", d => {
         let areaSelected = d3
           .select(`#areaSelection${i}${j}`)
           .property("value");
-        return areaScales[areaSelected](d[areaSelected]);
+        return scales.areaScales[areaSelected](d[areaSelected]);
       })
       .attr("fill", d => {
         let colorSelected = d3
           .select(`#colorSelection${i}${j}`)
           .property("value");
-        return colorScales[colorSelected](d[colorSelected]);
+        return scales.colorScales[colorSelected](d[colorSelected]);
       })
-      .attr("transform", `translate(18.5, 0)`);
+      .attr("transform", `translate(15.5, -14.5)`)
+      .attr("stroke", "black");
   });
   // axes
   cell.each(function([i, j]) {
     console.log(`cell number: [${i}, ${j}]`);
     const xAxisGenerator = d3
-      .axisBottom(xScales[d3.select(`#xSelection${i}${j}`).property("value")])
+      .axisBottom(
+        scales.xScales[d3.select(`#xSelection${i}${j}`).property("value")]
+      )
       .ticks(6);
 
     const xAxis = d3
@@ -380,8 +403,21 @@ async function drawChart() {
         `translate(15, ${dimensions.size - 3 * dimensions.padding})`
       );
 
+    const xLabel = xAxis
+      .append("text")
+      .attr("x", dimensions.size / 2)
+      .attr("y", dimensions.padding)
+      .attr("fill", "black")
+      .attr("font-size", "1.4em")
+      .text(d3.select(`#xSelection${i}${j}`).property("value"));
+
+    xAxes[i][j] = xAxis;
+    xAxesLabels[i][j] = xLabel;
+
     const yAxisGenerator = d3
-      .axisLeft(yScales[d3.select(`#ySelection${i}${j}`).property("value")])
+      .axisLeft(
+        scales.yScales[d3.select(`#ySelection${i}${j}`).property("value")]
+      )
       .ticks(6);
 
     const yAxis = d3
@@ -389,26 +425,115 @@ async function drawChart() {
       .append("g")
       .call(yAxisGenerator)
       .attr("transform", `translate(23.5, -${dimensions.padding})`);
+
+    const yLabel = yAxis
+      .append("text")
+      .attr("x", -dimensions.size / 2)
+      .attr("y", -dimensions.padding)
+      .attr("fill", "black")
+      .text(d3.select(`#ySelection${i}${j}`).property("value"))
+      .style("font-size", "1.4em")
+      .style("transform", "rotate(-90deg)")
+      .style("text-anchor", "middle");
+
+    yAxes[i][j] = yAxis;
+    yAxesLabels[i][j] = yLabel;
   });
 
+  // connect update function to each selection in each cell
   cell.each(function([i, j]) {
-    let that = this;
+    // let that = this;
     d3.select(`#ySelection${i}${j}`).on("change", function() {
-      update(that, this.value, i, j);
+      update("yScale", this.value, i, j);
+    });
+
+    d3.select(`#xSelection${i}${j}`).on("change", function() {
+      update("xScale", this.value, i, j);
+    });
+
+    d3.select(`#colorSelection${i}${j}`).on("change", function() {
+      update("colorScale", this.value, i, j);
+    });
+
+    d3.select(`#areaSelection${i}${j}`).on("change", function() {
+      update("areaScale", this.value, i, j);
     });
   });
 }
 
 drawChart();
 
-function update(cell, selectOption, xIndex, yIndex) {
-  console.log("selected selection: ", `ySelection${xIndex}${yIndex}`);
-  console.log("cell: ", cell);
-  console.log("d3 select cell: ", d3.select(cell).select("svg"));
+function update(scale, selectedOption, xIndex, yIndex) {
+  console.log("scale: ", scale);
+  console.log("selectedOption: ", selectedOption);
+  console.log(`cell: [${xIndex}, ${yIndex}]`);
 
-  let insertedDiv = d3
-    .select(cell)
-    .select("rect")
-    .append("p")
-    .text("added");
+  let selectedScale = scales[`${scale}s`][selectedOption];
+
+  if (columnsWithNegative.has(selectedOption)) {
+    selectedScale.domain([
+      d3.min(dataSet.map(row => row[selectedOption])),
+      d3.max(dataSet.map(row => row[selectedOption]))
+    ]);
+  } else {
+    selectedScale.domain([0, d3.max(dataSet.map(row => row[selectedOption]))]);
+  }
+
+  if (scale == "xScale") {
+    selectedScale.range([
+      dimensions.padding / 2 + 1,
+      dimensions.size - dimensions.padding * 3
+    ]);
+
+    let xAxisGenerator = d3.axisBottom(selectedScale);
+
+    xAxes[xIndex][yIndex]
+      .transition()
+      .duration(1000)
+      .call(xAxisGenerator);
+
+    xAxesLabels[xIndex][yIndex]
+      .transition()
+      .duration(1000)
+      .text(selectedOption);
+
+    dots[xIndex][yIndex]
+      .data(dataSet)
+      .transition()
+      .duration(1000)
+      .attr("cx", d => selectedScale(d[selectedOption]));
+  } else if (scale == "yScale") {
+    let yAxisGenerator = d3.axisLeft(selectedScale);
+
+    yAxes[xIndex][yIndex]
+      .transition()
+      .duration(1000)
+      .call(yAxisGenerator);
+
+    yAxesLabels[xIndex][yIndex]
+      .transition()
+      .duration(1000)
+      .text(selectedOption);
+
+    dots[xIndex][yIndex]
+      .data(dataSet)
+      .transition()
+      .duration(1000)
+      .attr("cy", d => selectedScale(d[selectedOption]));
+  } else if (scale == "areaScale") {
+    selectedScale.range([0, 50]);
+
+    dots[xIndex][yIndex]
+      .data(dataSet)
+      .transition()
+      .duration(1000)
+      .attr("r", d => selectedScale(d[selectedOption]))
+      .attr("r", d => selectedScale(d[selectedOption]));
+  } else if (scale == "colorScale") {
+    dots[xIndex][yIndex]
+      .data(dataSet)
+      .transition()
+      .style("fill", d => selectedScale(d[selectedOption]))
+      .duration(1000);
+  }
 }
