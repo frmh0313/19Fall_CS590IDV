@@ -353,7 +353,6 @@ async function drawChart() {
     });
 
   // brush
-
   cell.each(function([i, j]) {
     const brush = d3
       .brush()
@@ -393,6 +392,11 @@ async function drawChart() {
           y1 < scales.yScales[ySelected](d[ySelected])
         );
       });
+    }
+
+    function brusheEnded() {
+      if (d3.event.selection !== null) return;
+      circle.classed("hidden", false);
     }
   });
   // dots
