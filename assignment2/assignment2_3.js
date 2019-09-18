@@ -55,9 +55,9 @@ async function drawChart() {
     });
 
   let dimensions = {
-    width: 1600,
+    width: 1540,
     handler: 250,
-    padding: 30
+    padding: 15
   };
 
   dimensions.size =
@@ -75,47 +75,6 @@ async function drawChart() {
     .append("div")
     .attr("width", dimensions.width)
     .attr("height", dimensions.width + 120);
-
-  columns.forEach(c => {
-    let xScale;
-    if (columnsWithNegative.has(c)) {
-      xScale = d3
-        .scaleLinear()
-        .domain([
-          d3.min(dataSet.map(row => row[c])),
-          d3.max(dataSet.map(row => row[c]))
-        ]);
-    } else {
-      xScale = d3.scaleLinear().domain([0, d3.max(dataSet.map(row => row[c]))]);
-    }
-    xScales[c] = xScale.range([
-      dimensions.padding / 2,
-      dimensions.size - dimensions.padding / 2
-    ]);
-  });
-
-  const xAxis = function(g) {
-    const axis = d3
-      .axisBottom()
-      .ticks(6)
-      .tickSize(dimensions.size * columns.length);
-
-    // Continue from putting xaxes.
-    return g
-      .selectAll("g")
-      .data(xScales)
-      .join("g")
-      .attr("transform", (d, i) => `translate`);
-  };
-
-  Object.entries(xScales).forEach(([column, scale]) => {
-    yScales[column] = scale
-      .copy()
-      .range([
-        dimensions.size - dimensions.padding / 2,
-        dimensions.padding / 2
-      ]);
-  });
 
   // Drawing four cells
   cell = wrapper
@@ -172,20 +131,21 @@ async function drawChart() {
 
   const svgs = cell.selectAll(".svgsInCell");
 
-  svgs.append("g").call(xAxis);
+  // svgs.append("g").call(xAxis);
 
-  svgs.append("g").call(yAxis);
+  // svgs.append("g").call(yAxis);
 
   cellHandlers = cell.selectAll(".cellHandlers");
 
-  svgs
-    .append("rect")
-    .attr("fill", "none")
-    .attr("stroke", "#aaa")
-    .attr("x", dimensions.padding / 2 + 0.5)
-    .attr("y", dimensions.padding / 2 + 0.5)
-    .attr("width", 350)
-    .attr("height", 350);
+  // rect on svgs
+  // svgs
+  //   .append("rect")
+  //   .attr("fill", "none")
+  //   .attr("stroke", "#aaa")
+  //   .attr("x", dimensions.padding / 2 + 0.5)
+  //   .attr("y", dimensions.padding / 2 + 0.5)
+  //   .attr("width", 350)
+  //   .attr("height", 350);
 
   const yLabels = cellHandlers.append("label").text("yAxis");
 
@@ -316,6 +276,62 @@ async function drawChart() {
       .call(sliderGenerator);
   });
 
+  // Scales and Axes
+  columns.forEach(c => {
+    let xScale;
+    if (columnsWithNegative.has(c)) {
+      xScale = d3
+        .scaleLinear()
+        .domain([
+          d3.min(dataSet.map(row => row[c])),
+          d3.max(dataSet.map(row => row[c]))
+        ]);
+    } else {
+      xScale = d3.scaleLinear().domain([0, d3.max(dataSet.map(row => row[c]))]);
+    }
+    xScales[c] = xScale.range([
+      dimensions.padding / 2 + 1,
+      dimensions.size - dimensions.padding * 3
+    ]);
+  });
+
+  Object.entries(xScales).forEach(([column, scale]) => {
+    yScales[column] = scale
+      .copy()
+      .range([
+        dimensions.size - 2 * dimensions.padding,
+        2 * dimensions.padding
+      ]);
+  });
+
+  // axes
+  cell.each(function([i, j]) {
+    console.log(`cell number: [${i}, ${j}]`);
+    const xAxisGenerator = d3
+      .axisBottom(xScales[d3.select(`#xSelection${i}${j}`).property("value")])
+      .ticks(6);
+
+    const xAxis = d3
+      .select(`#canvas${i}${j}`)
+      .append("g")
+      .call(xAxisGenerator)
+      .attr(
+        "transform",
+        `translate(15, ${dimensions.size - 3 * dimensions.padding})`
+      );
+
+    const yAxisGenerator = d3
+      .axisLeft(yScales[d3.select(`#ySelection${i}${j}`).property("value")])
+      .ticks(6);
+
+    const yAxis = d3
+      .select(`#canvas${i}${j}`)
+      .append("g")
+      .call(yAxisGenerator)
+      .attr("transform", `translate(23.5, -${dimensions.padding})`);
+  });
+  // dots
+
   cell.each(function([i, j]) {
     d3.select(`#canvas${i}${j}`)
       .selectAll("circle")
@@ -330,7 +346,8 @@ async function drawChart() {
         return yScales[selected](d[selected]);
       })
       .attr("r", 3.5)
-      .attr("fill", "skyblue");
+      .attr("fill", "skyblue")
+      .attr("transform", `translate(18.5, 0)`);
   });
 
   cell.each(function([i, j]) {
