@@ -354,28 +354,25 @@ async function drawChart() {
     });
 
   // tooltip
-  cell.each(function([i, j]) {
+  cell.each(function([i, j]) {});
+
+  function mouseover(d, selection, i, j) {
     d3.select(`#container${i}${j}`)
       .append("div")
       .attr("class", "tooltip")
       .attr("id", `tooltip${i}${j}`)
       .style("width", "auto")
       .style("height", "auto")
-      .style("opacity", 0)
       .style("background-color", "white")
       .style("border", "solid")
       .style("border-width", "2px")
       .style("border-radius", "5px")
       .style("padding", "5px")
       .style("box-shadow", "4px 4px 10px rgba(0, 0, 0, 0.4)");
-  });
 
-  function mouseover(d, selection, i, j) {
     d3.select(`#tooltip${i}${j}`).style("opacity", 1);
 
-    d3.select(selection)
-      .style("opacity", 1)
-      .style("stroke", "black");
+    d3.select(selection).style("stroke", "black");
   }
 
   function mousemove(d, selection, i, j) {
@@ -399,8 +396,7 @@ async function drawChart() {
   }
 
   function mouseleave(d, selection, i, j) {
-    d3.select(`#tooltip${i}${j}`).style("opacity", 0);
-
+    d3.select(`#tooltip${i}${j}`).remove();
     d3.select(selection)
       .style("stroke", "gray")
       .style("opacity", 0.7);
@@ -466,7 +462,7 @@ async function drawChart() {
       .axisBottom(
         scales.xScales[d3.select(`#xSelection${i}${j}`).property("value")]
       )
-      .ticks(6);
+      .ticks(3);
 
     const xAxis = d3
       .select(`#canvas${i}${j}`)
@@ -559,7 +555,7 @@ function update(scale, selectedOption, xIndex, yIndex) {
       dimensions.size - dimensions.padding * 3
     ]);
 
-    let xAxisGenerator = d3.axisBottom(selectedScale);
+    let xAxisGenerator = d3.axisBottom(selectedScale).ticks(3);
 
     xAxes[xIndex][yIndex]
       .transition()
