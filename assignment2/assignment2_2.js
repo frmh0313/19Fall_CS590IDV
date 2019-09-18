@@ -117,14 +117,7 @@ async function drawFunction() {
     .call(xAxisGenerator)
     .style("transform", `translateY(${dimensions.boundedHeight}px)`);
 
-  xAxisLabel = xAxis
-    .append("text")
-    .attr("x", dimensions.boundedWidth / 2)
-    .attr("y", dimensions.margin.bottom - 10)
-    .attr("fill", "black")
-    .attr("font-size", "1.4em")
-    .text("GDP per capita");
-
+  console.log(d3.select("#xSelection").property("value"));
   scales.yScale = d3
     .scaleLinear()
     .domain([0, 90])
@@ -133,25 +126,6 @@ async function drawFunction() {
   yAxisGenerator = d3.axisLeft(scales.yScale);
 
   yAxis = bounds.append("g").call(yAxisGenerator);
-
-  yAxisLabel = yAxis
-    .append("text")
-    .attr("x", -dimensions.boundedHeight / 2)
-    .attr("y", -dimensions.margin.left + 10)
-    .attr("fill", "black")
-    .text("Life expectancy at birth")
-    .style("font-size", "1.4em")
-    .style("transform", "rotate(-90deg)")
-    .style("text-anchor", "middle");
-
-  scales.areaScale = d3
-    .scaleLinear()
-    .domain([0, d3.max(dataSet.map(row => row["Population"]))])
-    .range([3, 50]);
-
-  scales.colorScale = d3
-    .scaleSequential(d3.interpolateGreens)
-    .domain([0, d3.max(dataSet.map(row => row["Birth rate"]))]);
 
   sliderGenerator = d3
     .sliderBottom()
@@ -224,7 +198,6 @@ async function drawFunction() {
     .join("option")
     .attr("value", "Country")
     .text("Country");
-
   // setting default options
   d3.select("#ySelection")
     .selectAll("option")
@@ -241,6 +214,44 @@ async function drawFunction() {
   d3.select("#areaSelection")
     .selectAll("option")
     .property("selected", d => d == "Population");
+
+  xAxisLabel = xAxis
+    .append("text")
+    .attr("x", dimensions.boundedWidth / 2)
+    .attr("y", dimensions.margin.bottom - 10)
+    .attr("fill", "black")
+    .attr("font-size", "1.4em")
+    .text(d3.select("#xSelection").property("value"));
+
+  yAxisLabel = yAxis
+    .append("text")
+    .attr("x", -dimensions.boundedHeight / 2)
+    .attr("y", -dimensions.margin.left + 10)
+    .attr("fill", "black")
+    .text(d3.select("#ySelection").property("value"))
+    .style("font-size", "1.4em")
+    .style("transform", "rotate(-90deg)")
+    .style("text-anchor", "middle");
+
+  scales.areaScale = d3
+    .scaleLinear()
+    .domain([
+      0,
+      d3.max(
+        dataSet.map(row => row[d3.select("#areaSelection").property("value")])
+      )
+    ])
+    .range([3, 50]);
+
+  scales.colorScale = d3
+    .scaleSequential(d3.interpolateGreens)
+    // .scaleSequential(d3.interpolateGreens)
+    .domain([
+      0,
+      d3.max(
+        dataSet.map(row => row[d3.select("#colorSelection").property("value")])
+      )
+    ]);
 
   dots = bounds
     .selectAll("circle")
@@ -264,7 +275,7 @@ async function drawFunction() {
     })
     .style("fill", d => {
       let colorSelected = d3.select("#colorSelection").property("value");
-      return scales.colorScale(d["Birth rate"]);
+      return scales.colorScale(d[colorSelected]);
     })
     // .style("opacity", "0.7")
     .attr("stroke", "black");
@@ -293,7 +304,6 @@ function updateScale(scale, selectedOption) {
   console.log("selectedOption: ", selectedOption);
 
   let selectedScale = scales[scale];
-
   if (columnsWithNegative.has(selectedOption)) {
     selectedScale.domain([
       d3.min(dataSet.map(row => row[selectedOption])),
@@ -354,7 +364,11 @@ function updateScale(scale, selectedOption) {
       .attr("r", d => selectedScale(d[selectedOption]))
       .attr("rOriginal", d => selectedScale(d[selectedOption]));
   } else if (scale == "colorScale") {
-    selectedScale.range(colorScheme5);
+    dots
+      .data(dataSet)
+      .transition()
+      .style("fill", d => selectedScale(d[selectedOption]))
+      .duration(1000);
   }
 }
 
