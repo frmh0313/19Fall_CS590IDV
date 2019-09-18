@@ -36,6 +36,8 @@ dimensions.size =
 // 2. add legends
 // 3. Layout..
 // 4. Drawing rectangles over svgs.
+// 5. Color scale - columnsWithNegative - map the point zero to the middle
+
 async function drawChart() {
   dataSet = await d3
     .csv("./factbook.csv")

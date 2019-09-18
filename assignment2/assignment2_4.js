@@ -17,6 +17,8 @@ let scales = { xScales: {}, yScales: {}, colorScales: {}, areaScales: {} };
 
 let cellHandlers;
 
+let [mouseover, mousemove, mouseleave] = [];
+let tooltips = [[], []];
 let dimensions = {
   width: 1540,
   handler: 250,
@@ -36,6 +38,7 @@ dimensions.size =
 // 2. add legends
 // 3. Layout..
 // 4. Drawing rectangles over svgs.
+// 5. onchange of area -> sort the dataSet
 async function drawChart() {
   dataSet = await d3
     .csv("./factbook.csv")
@@ -91,6 +94,7 @@ async function drawChart() {
     .style("position", "absolute")
     .each(function([i, j]) {
       d3.select(this)
+        .attr("id", `container${i}${j}`)
         .style("top", `${i * dimensions.size}px`)
         .style(
           "left",
@@ -349,12 +353,72 @@ async function drawChart() {
       scales.areaScales[c] = areaScale;
     });
 
+  // tooltip
+  cell.each(function([i, j]) {
+    d3.select(`#container${i}${j}`)
+      .append("div")
+      .attr("class", "tooltip")
+      .attr("id", `tooltip${i}${j}`)
+      .style("width", "auto")
+      .style("height", "auto")
+      .style("opacity", 0)
+      .style("background-color", "white")
+      .style("border", "solid")
+      .style("border-width", "2px")
+      .style("border-radius", "5px")
+      .style("padding", "5px")
+      .style("box-shadow", "4px 4px 10px rgba(0, 0, 0, 0.4)");
+  });
+
+  function mouseover(d, selection, i, j) {
+    d3.select(`#tooltip${i}${j}`).style("opacity", 1);
+
+    d3.select(selection)
+      .style("opacity", 1)
+      .style("stroke", "black");
+  }
+
+  function mousemove(d, selection, i, j) {
+    let xSelected = d3.select(`#xSelection${i}${j}`).property("value");
+    let ySelected = d3.select(`#ySelection${i}${j}`).property("value");
+    let colorSelected = d3.select(`#colorSelection${i}${j}`).property("value");
+    let areaSelected = d3.select(`#areaSelection${i}${j}`).property("value");
+
+    d3.select(`#tooltip${i}${j}`)
+      .html(
+        `
+  <p>Country: ${d.Country}</p>
+  <p>${xSelected}: ${d[xSelected]}</p>
+  <p>${ySelected}: ${d[ySelected]}</p>
+  <p>${areaSelected}: ${d[areaSelected]}</p>
+  <p>${colorSelected}: ${d[colorSelected]}</p>`
+      )
+      .style("position", "absolute")
+      .style("left", `${d3.mouse(selection)[0] + 100}px`)
+      .style("top", `${d3.mouse(selection)[1]}px`);
+  }
+
+  function mouseleave(d, selection, i, j) {
+    d3.select(`#tooltip${i}${j}`).style("opacity", 0);
+
+    d3.select(selection)
+      .style("stroke", "gray")
+      .style("opacity", 0.7);
+  }
   // dots
   cell.each(function([i, j]) {
     dots[i][j] = d3
       .select(`#canvas${i}${j}`)
       .selectAll("circle")
-      .data(dataSet)
+      .data(
+        dataSet.sort((a, b) => {
+          let areaSelected = d3
+            .select(`#areaSelection${i}${j}`)
+            .property("value");
+          return b[areaSelected] - a[areaSelected];
+        })
+      )
+      // .data(dataSet)
       .join("circle")
       .attr("cx", d => {
         let xSelected = d3.select(`#xSelection${i}${j}`).property("value");
@@ -383,11 +447,21 @@ async function drawChart() {
         return scales.colorScales[colorSelected](d[colorSelected]);
       })
       .attr("transform", `translate(15.5, -14.5)`)
-      .attr("stroke", "black");
+      .attr("opacity", 0.7)
+      .attr("stroke", "gray")
+      .attr("country", d => d.Country)
+      .on("mouseover", function(d) {
+        mouseover(d, this, i, j);
+      })
+      .on("mousemove", function(d) {
+        mousemove(d, this, i, j);
+      })
+      .on("mouseleave", function(d) {
+        mouseleave(d, this, i, j);
+      });
   });
   // axes
   cell.each(function([i, j]) {
-    console.log(`cell number: [${i}, ${j}]`);
     const xAxisGenerator = d3
       .axisBottom(
         scales.xScales[d3.select(`#xSelection${i}${j}`).property("value")]
@@ -524,11 +598,12 @@ function update(scale, selectedOption, xIndex, yIndex) {
     selectedScale.range([0, 50]);
 
     dots[xIndex][yIndex]
-      .data(dataSet)
+      // .data(dataSet)
+      .data(dataSet.sort((a, b) => b[selectedOption] - a[selectedOption]))
       .transition()
       .duration(1000)
       .attr("r", d => selectedScale(d[selectedOption]))
-      .attr("r", d => selectedScale(d[selectedOption]));
+      .attr("rOriginal", d => selectedScale(d[selectedOption]));
   } else if (scale == "colorScale") {
     dots[xIndex][yIndex]
       .data(dataSet)
