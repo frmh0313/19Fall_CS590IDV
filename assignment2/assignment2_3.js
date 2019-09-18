@@ -16,6 +16,7 @@ let [slider, sliderGenerator, sliderInput] = [];
 let scales = { xScales: {}, yScales: {}, colorScales: {}, areaScales: {} };
 
 let cellHandlers;
+let brush;
 
 let dimensions = {
   width: 1540,
@@ -351,6 +352,49 @@ async function drawChart() {
       scales.areaScales[c] = areaScale;
     });
 
+  // brush
+
+  cell.each(function([i, j]) {
+    const brush = d3
+      .brush()
+      .extent([
+        [dimensions.padding / 2, dimensions.padding / 2],
+        [
+          dimensions.size - dimensions.padding / 2,
+          dimensions.size - dimensions.padding / 2
+        ]
+      ])
+      .on("start", brushStarted)
+      .on("brush", brushed)
+      .on("end", brushended);
+
+    d3.select(`#canvas${i}${j}`).call(brush);
+
+    let brushCell;
+
+    function brushStarted() {
+      console.log("brushStarted", brushCell === this);
+      if (brushCell !== this) {
+        d3.select(brushCell).call(brush.move, null);
+        brushCell = this;
+      }
+    }
+
+    function brushed([i, j]) {
+      if (d3.event.selecti8on === null) return;
+      const [[x0, y0], [x1, y1]] = d3.event.selection;
+      circle.classed("hideen", d => {
+        let xSelected = d3.select(`#xSelection${i}${j}`).property("value");
+        let ySelected = d3.select(`#ySelection${i}${j}`).property("value");
+        return (
+          x0 > scales.xScales[xSelected](d[xSelected]) ||
+          x1 < scales.xScales[xSeleced](d[xSelected]) ||
+          y0 > scales.yScales[ySelected](d[ySelected]) ||
+          y1 < scales.yScales[ySelected](d[ySelected])
+        );
+      });
+    }
+  });
   // dots
   cell.each(function([i, j]) {
     dots[i][j] = d3
