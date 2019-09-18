@@ -10,10 +10,10 @@ let [slider, sliderGenerator, sliderInput] = [];
 
 let xScales = {};
 let yScales = {};
-let colorScales = {};
-let areaScales = {};
+let [areaScale, colorScale] = [];
 
 let cellHandlers;
+
 async function drawChart() {
   dataSet = await d3
     .csv("./factbook.csv")
@@ -67,8 +67,6 @@ async function drawChart() {
       dimensions.handler) /
       2 +
     dimensions.padding;
-
-  // console.log("dimensions.size: ", dimensions.size);
 
   const wrapper = d3
     .select("#wrapper")
@@ -130,10 +128,6 @@ async function drawChart() {
     });
 
   const svgs = cell.selectAll(".svgsInCell");
-
-  // svgs.append("g").call(xAxis);
-
-  // svgs.append("g").call(yAxis);
 
   cellHandlers = cell.selectAll(".cellHandlers");
 
@@ -200,7 +194,6 @@ async function drawChart() {
     .text(d => d);
 
   cellHandlers.selectAll("label, select").style("display", "block");
-
   // setting default value
   d3.selectAll(".ySelections")
     .selectAll("option")
@@ -217,7 +210,6 @@ async function drawChart() {
   d3.selectAll(".areaSelections")
     .selectAll("option")
     .property("selected", d => d == "Population");
-
   // slider
   cell.each(function([i, j]) {
     let slider = d3
@@ -276,7 +268,8 @@ async function drawChart() {
       .call(sliderGenerator);
   });
 
-  // Scales and Axes
+  // Scales
+  // xScales
   columns.forEach(c => {
     let xScale;
     if (columnsWithNegative.has(c)) {
@@ -295,6 +288,7 @@ async function drawChart() {
     ]);
   });
 
+  // yScales
   Object.entries(xScales).forEach(([column, scale]) => {
     yScales[column] = scale
       .copy()
@@ -329,24 +323,42 @@ async function drawChart() {
       .append("g")
       .call(yAxisGenerator)
       .attr("transform", `translate(23.5, -${dimensions.padding})`);
-  });
-  // dots
 
+    areaScales;
+  });
+
+  // dots
   cell.each(function([i, j]) {
     d3.select(`#canvas${i}${j}`)
       .selectAll("circle")
       .data(dataSet)
       .join("circle")
       .attr("cx", d => {
-        let selected = d3.select(`#xSelection${i}${j}`).property("value");
-        return xScales[selected](d[selected]);
+        let xSelected = d3.select(`#xSelection${i}${j}`).property("value");
+        return xScales[xSelected](d[xSelected]);
       })
       .attr("cy", d => {
-        let selected = d3.select(`#ySelection${i}${j}`).property("value");
-        return yScales[selected](d[selected]);
+        let ySelected = d3.select(`#ySelection${i}${j}`).property("value");
+        return yScales[ySelected](d[ySelected]);
       })
-      .attr("r", 3.5)
-      .attr("fill", "skyblue")
+      .attr("r", d => {
+        let areaSelected = d3
+          .select(`#areaSelection${i}${j}`)
+          .property("value");
+        return areaScales[areaSelected](d[areaSelected]);
+      })
+      .attr("rOriginal", d => {
+        let areaSelected = d3
+          .select(`#areaSelection${i}${j}`)
+          .property("value");
+        return areaScales[areaSelected](d[areaSelected]);
+      })
+      .attr("fill", d => {
+        let colorSelected = d3
+          .select(`#colorSelection${i}${j}`)
+          .property("value");
+        return colorScales[colorSelected](d[colorSelected]);
+      })
       .attr("transform", `translate(18.5, 0)`);
   });
 
