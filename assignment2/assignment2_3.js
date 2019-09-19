@@ -81,9 +81,19 @@ async function drawChart() {
 
   const wrapper = d3
     .select("#wrapper")
-    .append("div")
+    // .append("div")
+    // .attr("id", "cellDivs")
     .attr("width", dimensions.width)
     .attr("height", dimensions.width + 120);
+
+  // size: four svgs + paddings
+  // + translate
+  const svgs = wrapper
+    .append("svg")
+    .attr("id", "svgs")
+    .attr("width", dimensions.size * 2 + dimensions.padding)
+    .attr("height", dimensions.size * 2 + dimensions.padding)
+    .attr("transform", `translate(${dimensions.handler}, 0)`);
 
   // Drawing four cells
   cell = wrapper
@@ -137,7 +147,7 @@ async function drawChart() {
       }
     });
 
-  const svgs = cell.selectAll(".svgsInCell");
+  // const svgs = cell.selectAll(".svgsInCell");
 
   cellHandlers = cell.selectAll(".cellHandlers");
 
