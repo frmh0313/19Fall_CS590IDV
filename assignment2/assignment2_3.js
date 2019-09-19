@@ -352,8 +352,61 @@ async function drawChart() {
       scales.areaScales[c] = areaScale;
     });
 
-  // brush
-  cell.each(function([i, j]) {
+  // brush - should cover four svgs simultaneously
+
+  // different type of interaction.
+  // Four svgs in each divs on one svgs?
+
+  `
+// currently
+<div id="wrapper">
+    <div>
+      <div id="cell0">
+        <div id="cellHandler00"></div>
+        <svg id="canvas00"></svg>
+      </div>
+      <div id="cell1">
+        <div id="cellHandler01"></div>
+        <svg id="canvas01"></svg>
+      </div>
+      <div id="cell2">
+        <div id="cellHandler10"></div>
+        <svg id="canvas10"></svg>
+      </div>
+      <div id="cell3">
+        <div id="cellHandler11"></div>
+        <svg id="canvas11"></svg>
+      </div>
+
+    </div>
+</div>
+
+
+// New?
+<div id="wrapper">
+    <div>
+      <div id="cell0">
+        <div id="cellHandler00"></div>
+      </div>
+      <div id="cell1">
+        <div id="cellHandler01"></div>
+      </div>
+      <div id="cell2">
+        <div id="cellHandler10"></div>
+      </div>
+      <div id="cell3">
+        <div id="cellHandler11"></div>
+      </div>
+    </div>
+    <svg id="svgCell">
+      <svg id="canvas00"></svg>
+      <svg id="canvas01"></svg>
+      <svg id="canvas10"></svg>
+      <svg id="canvas11"></svg>
+    </svg>
+</div>
+`;
+  function brush(cell, circle) {
     const brush = d3
       .brush()
       .extent([
@@ -365,11 +418,11 @@ async function drawChart() {
       ])
       .on("start", brushStarted)
       .on("brush", brushed)
-      .on("end", brushended);
-
-    d3.select(`#canvas${i}${j}`).call(brush);
+      .on("end", brushEnded);
 
     let brushCell;
+
+    cell.call(brush);
 
     function brushStarted() {
       console.log("brushStarted", brushCell === this);
@@ -382,23 +435,24 @@ async function drawChart() {
     function brushed([i, j]) {
       if (d3.event.selecti8on === null) return;
       const [[x0, y0], [x1, y1]] = d3.event.selection;
-      circle.classed("hideen", d => {
+      circle.classed("hidden", d => {
         let xSelected = d3.select(`#xSelection${i}${j}`).property("value");
         let ySelected = d3.select(`#ySelection${i}${j}`).property("value");
         return (
           x0 > scales.xScales[xSelected](d[xSelected]) ||
-          x1 < scales.xScales[xSeleced](d[xSelected]) ||
+          x1 < scales.xScales[xSelected](d[xSelected]) ||
           y0 > scales.yScales[ySelected](d[ySelected]) ||
           y1 < scales.yScales[ySelected](d[ySelected])
         );
       });
     }
 
-    function brusheEnded() {
+    function brushEnded() {
       if (d3.event.selection !== null) return;
       circle.classed("hidden", false);
     }
-  });
+  }
+
   // dots
   cell.each(function([i, j]) {
     dots[i][j] = d3
@@ -434,6 +488,8 @@ async function drawChart() {
       })
       .attr("transform", `translate(15.5, -14.5)`)
       .attr("stroke", "black");
+
+    d3.select(`#canvas${i}${j}`).call(brush, dots[i][j]);
   });
   // axes
   cell.each(function([i, j]) {
