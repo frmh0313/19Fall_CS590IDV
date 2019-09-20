@@ -133,9 +133,14 @@ async function drawChart() {
       } else if (j == 1) {
         d3.select(this)
           .style("top", `${i * dimensions.size + 10}px`)
-          .style("right", `${dimensions.padding}px`)
+          .style(
+            "left",
+            `${dimensions.padding * 2 +
+              dimensions.handler +
+              2 * dimensions.size}px`
+          )
           .style("width", " 260px")
-          .style("float", "right");
+          .style("float", "left");
       }
 
       d3.select(this)
