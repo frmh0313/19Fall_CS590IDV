@@ -114,8 +114,6 @@ async function drawChart() {
     .attr("stroke", "#aaa")
     .attr("x", dimensions.padding / 2 + 0.5)
     .attr("y", dimensions.padding / 2 + 0.5)
-    // .attr("x", dimensions.padding)
-    // .attr("y", dimensions.padding)
     .attr("width", dimensions.size - dimensions.padding)
     .attr("height", dimensions.size - dimensions.padding);
 
@@ -219,6 +217,7 @@ async function drawChart() {
     .text(d => d);
 
   cellHandlers.selectAll("label, select").style("display", "block");
+
   // setting default value
   d3.selectAll(".ySelections")
     .selectAll("option")
@@ -414,7 +413,6 @@ async function drawChart() {
       .attr("opacity", 0.7);
 
     // axes
-    // console.log(`cell number: [${i}, ${j}]`);
     const xAxisGenerator = d3
       .axisBottom(
         scales.xScales[d3.select(`#xSelection${i}${j}`).property("value")]
@@ -447,8 +445,6 @@ async function drawChart() {
       )
       .ticks(6);
 
-    // const yAxis = d3.select(`#canvas${i}${j}`);
-
     const yAxis = svg
       .append("g")
       .call(yAxisGenerator)
@@ -457,8 +453,6 @@ async function drawChart() {
         `translate(${j * dimensions.size + (dimensions.padding * 3) / 2}, ${i *
           dimensions.size})`
       );
-
-    // .attr("transform", `translate(23.5, -${dimensions.padding})`);
 
     const yLabel = yAxis
       .append("text")
@@ -474,7 +468,6 @@ async function drawChart() {
     yAxesLabels[i][j] = yLabel;
   });
 
-  // need dots[i][j]?
   circle = cell.selectAll("circle");
   function brush(cell, circle) {
     const brush = d3
@@ -529,7 +522,6 @@ async function drawChart() {
 
   // connect update function to each selection in each cell
   cell.each(function([j, i]) {
-    // let that = this;
     d3.select(`#ySelection${i}${j}`).on("change", function() {
       update("yScale", this.value, i, j);
     });
