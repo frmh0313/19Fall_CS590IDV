@@ -7,6 +7,8 @@ let [xAxis, xAxisGenerator, xAxisLabel, yAxis, yAxisGenerator, yAxisLabel] = [];
 
 let xAxes = [[], []];
 let yAxes = [[], []];
+let xAxisGenerators = [[], []];
+let yAxisGenerators = [[], []];
 let xAxesLabels = [[], []];
 let yAxesLabels = [[], []];
 let dots = [[], []];
@@ -130,7 +132,7 @@ async function drawChart() {
       if (j == 0) {
         d3.select(this)
           .style("top", `${i * dimensions.size + 10}px`)
-          .style("left", `${dimensions.padding}px`)
+          .style("left", `${dimensions.padding / 2}px`)
           .style("width", "260px")
           .style("float", "left");
       } else if (j == 1) {
@@ -509,6 +511,7 @@ async function drawChart() {
       .text(d3.select(`#xSelection${i}${j}`).property("value"));
 
     xAxes[i][j] = xAxis;
+    xAxisGenerators[i][j] = xAxisGenerator;
     xAxesLabels[i][j] = xLabel;
 
     const yAxisGenerator = d3
@@ -538,6 +541,7 @@ async function drawChart() {
 
     yAxes[i][j] = yAxis;
     yAxesLabels[i][j] = yLabel;
+    yAxisGenerators[i][j] = yAxisGenerator;
   });
 
   circle = cell.selectAll("circle");
@@ -641,9 +645,11 @@ function update(scale, selectedOption, xIndex, yIndex) {
       .transition()
       .duration(1000)
       .attr("cx", d => selectedScale(d[selectedOption]));
-    let xAxisGenerator = d3.axisBottom(selectedScale);
 
-    xAxes[yIndex][xIndex]
+    let xAxisGenerator = d3.axisBottom(selectedScale).ticks(6);
+
+    // xAxes[yIndex][xIndex]
+    xAxes[xIndex][yIndex]
       .transition()
       .duration(1000)
       .call(xAxisGenerator);
@@ -652,6 +658,8 @@ function update(scale, selectedOption, xIndex, yIndex) {
       .transition()
       .duration(1000)
       .text(selectedOption);
+
+    xAxisGenerators[xIndex][yIndex] = xAxisGenerator;
   } else if (scale == "yScale") {
     let yAxisGenerator = d3.axisLeft(selectedScale);
     dots[xIndex][yIndex]
@@ -678,6 +686,9 @@ function update(scale, selectedOption, xIndex, yIndex) {
       .duration(1000)
       .attr("r", d => selectedScale(d[selectedOption]))
       .attr("r", d => selectedScale(d[selectedOption]));
+
+    xAxes[xIndex][yIndex].call(xAxisGenerators[xIndex][yIndex]);
+    yAxes[xIndex][yIndex].call(yAxisGenerators[xIndex][yIndex]);
   } else if (scale == "colorScale") {
     dots[xIndex][yIndex]
       .data(dataSet)
@@ -685,6 +696,8 @@ function update(scale, selectedOption, xIndex, yIndex) {
       .style("fill", d => selectedScale(d[selectedOption]))
       .duration(1000);
   }
+  xAxes[xIndex][yIndex].call(xAxisGenerators[xIndex][yIndex]);
+  yAxes[xIndex][yIndex].call(yAxisGenerators[xIndex][yIndex]);
 }
 
 drawChart();
