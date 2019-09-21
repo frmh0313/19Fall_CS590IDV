@@ -24,6 +24,166 @@ let dimensions = {
   padding: 40
 };
 
+let continentCountry = {
+  Asia: [
+    "Japan",
+    "Saudi Arabia",
+    "China",
+    "Korea South",
+    "Taiwan",
+    "Hong Kong",
+    "Kuwait",
+    "Malaysia",
+    "Singapore",
+    "Indonesia",
+    "Thailand",
+    "United Arab Emirates",
+    "Qatar",
+    "India",
+    "Philippines",
+    "Oman",
+    "Iran",
+    "Pakistan",
+    "Syria",
+    "Bahrain",
+    "Uzbekistan",
+    "Yemen",
+    "Bangladesh",
+    "Israel",
+    "Jordan",
+    "Turkmenistan",
+    "Papua New Guinea",
+    "Kazakhstan",
+    "Tajikistan",
+    "Laos",
+    "Kyrgyzstan",
+    "Burma",
+    "Armenia",
+    "Cambodia",
+    "Iraq",
+    "Sri Lanka",
+    "Georgia",
+    "Vietnam",
+    "Lebanon",
+    "Azerbaijan",
+    "Turkey"
+  ],
+  "North America": [
+    "Canada",
+    "Haiti",
+    "Cuba",
+    "Panama",
+    "Jamaica",
+    "El Salvador",
+    "Costa Rica",
+    "Guatemala",
+    "United States",
+    "Belize"
+  ],
+  "South America": [
+    "Venezuela",
+    "Brazil",
+    "Argentina",
+    "Chile",
+    "Trinidad and Tobago",
+    "Dominican Republic",
+    "Bolivia",
+    "Ecuador",
+    "Honduras",
+    "Peru",
+    "Paraguay",
+    "Guyana",
+    "Nicaragua",
+    "Colombia",
+    "Mexico",
+    "Uruguay"
+  ],
+  Europe: [
+    "Germany",
+    "Russia",
+    "Switzerland",
+    "Norway",
+    "Sweden",
+    "Netherlands",
+    "Belgium",
+    "Finland",
+    "Denmark",
+    "Ukraine",
+    "Bulgaria",
+    "Slovenia",
+    "Moldova",
+    "Malta",
+    "France",
+    "Macedonia",
+    "Albania",
+    "Iceland",
+    "Cyprus",
+    "Belarus",
+    "Estonia",
+    "Latvia",
+    "Slovakia",
+    "Lithuania",
+    "Croatia",
+    "Bosnia and Herzegovina",
+    "Ireland",
+    "Serbia and Montenegro",
+    "Austria",
+    "Romania",
+    "Poland",
+    "Czech Republic",
+    "Hungary",
+    "Greece",
+    "Portugal",
+    "Italy",
+    "Spain",
+    "United Kingdom"
+  ],
+  Africa: [
+    "Algeria",
+    "Libya",
+    "Nigeria",
+    "Egypt",
+    "Morocco",
+    "Botswana",
+    "Chad",
+    "Mauritius",
+    "Congo Republic of the",
+    "Namibia",
+    "Gabon",
+    "Ghana",
+    "Tunisia",
+    "Gambia The",
+    "Sao Tome and Principe",
+    "Angola",
+    "Malawi",
+    "Burundi",
+    "Swaziland",
+    "Cape Verde",
+    "Seychelles",
+    "Mozambique",
+    "Lesotho",
+    "Togo",
+    "Eritrea",
+    "Cameroon",
+    "Benin",
+    "Zambia",
+    "Rwanda",
+    "Zimbabwe",
+    "Madagascar",
+    "Guinea",
+    "Tanzania",
+    "Cote d'Ivoire",
+    "Kenya",
+    "Ethiopia",
+    "Burkina Faso",
+    "Senegal",
+    "Equatorial Guinea",
+    "Uganda",
+    "Sudan",
+    "South Africa"
+  ],
+  Oceania: ["New Zealand", "Australia"]
+};
 dimensions.size =
   (dimensions.width -
     2 * dimensions.handler -
@@ -75,8 +235,21 @@ async function drawChart() {
           });
         return row;
       });
+    })
+    .then(data => {
+      columns.push("Continent");
+      columns.sort();
+      return data.map(row => {
+        for ([continent, countryArr] of Object.entries(continentCountry)) {
+          if (countryArr.includes(row.Country)) {
+            row.Continent = continent;
+            return row;
+          }
+        }
+      });
     });
 
+  console.log(dataSet);
   const wrapper = d3
     .select("#wrapper")
     .attr("width", dimensions.width)
@@ -211,7 +384,7 @@ async function drawChart() {
     .attr("id", ([i, j]) => `colorSelection${i}${j}`)
     .selectAll("option")
     .append("option")
-    .data(columns)
+    .data(columns.filter(c => c !== "Country"))
     .join("option")
     .attr("value", d => d)
     .text(d => d);
@@ -355,6 +528,11 @@ async function drawChart() {
 
       scales.colorScales[c] = colorScale;
     });
+
+    let continentColorScale = d3
+      .scaleOrdinal(d3.schemeSet1)
+      .domain(Object.keys(continentCountry));
+    scales.colorScales["Continent"] = continentColorScale;
 
     // area scales
     columns
