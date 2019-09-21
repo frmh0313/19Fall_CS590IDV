@@ -66,6 +66,9 @@ async function drawFunction() {
           .filter(column => column != "Country")
           .forEach(key => {
             if (row[key].startsWith("$")) {
+              if (key == "Current account balance") {
+                row[key] = row[key].replace(/[()]/g, "");
+              }
               row[key] = +row[key]
                 .substr(1)
                 .split(",")
@@ -110,22 +113,11 @@ async function drawFunction() {
     .domain([0, d3.max(dataSet.map(row => row["GDP per capita"]))])
     .range([0, dimensions.boundedWidth]);
 
-  xAxisGenerator = d3.axisBottom(scales.xScale);
-
-  xAxis = bounds
-    .append("g")
-    .call(xAxisGenerator)
-    .style("transform", `translateY(${dimensions.boundedHeight}px)`);
-
   console.log(d3.select("#xSelection").property("value"));
   scales.yScale = d3
     .scaleLinear()
     .domain([0, 90])
     .range([dimensions.boundedHeight, 0]);
-
-  yAxisGenerator = d3.axisLeft(scales.yScale);
-
-  yAxis = bounds.append("g").call(yAxisGenerator);
 
   sliderGenerator = d3
     .sliderBottom()
@@ -215,24 +207,6 @@ async function drawFunction() {
     .selectAll("option")
     .property("selected", d => d == "Population");
 
-  xAxisLabel = xAxis
-    .append("text")
-    .attr("x", dimensions.boundedWidth / 2)
-    .attr("y", dimensions.margin.bottom - 10)
-    .attr("fill", "black")
-    .attr("font-size", "1.4em")
-    .text(d3.select("#xSelection").property("value"));
-
-  yAxisLabel = yAxis
-    .append("text")
-    .attr("x", -dimensions.boundedHeight / 2)
-    .attr("y", -dimensions.margin.left + 10)
-    .attr("fill", "black")
-    .text(d3.select("#ySelection").property("value"))
-    .style("font-size", "1.4em")
-    .style("transform", "rotate(-90deg)")
-    .style("text-anchor", "middle");
-
   scales.areaScale = d3
     .scaleLinear()
     .domain([
@@ -280,6 +254,34 @@ async function drawFunction() {
     // .style("opacity", "0.7")
     .attr("stroke", "black");
 
+  xAxisGenerator = d3.axisBottom(scales.xScale);
+
+  xAxis = bounds
+    .append("g")
+    .call(xAxisGenerator)
+    .style("transform", `translateY(${dimensions.boundedHeight}px)`);
+
+  xAxisLabel = xAxis
+    .append("text")
+    .attr("x", dimensions.boundedWidth / 2)
+    .attr("y", dimensions.margin.bottom - 10)
+    .attr("fill", "black")
+    .attr("font-size", "1.4em")
+    .text(d3.select("#xSelection").property("value"));
+
+  yAxisGenerator = d3.axisLeft(scales.yScale);
+
+  yAxis = bounds.append("g").call(yAxisGenerator);
+
+  yAxisLabel = yAxis
+    .append("text")
+    .attr("x", -dimensions.boundedHeight / 2)
+    .attr("y", -dimensions.margin.left + 10)
+    .attr("fill", "black")
+    .text(d3.select("#ySelection").property("value"))
+    .style("font-size", "1.4em")
+    .style("transform", "rotate(-90deg)")
+    .style("text-anchor", "middle");
   d3.select("#ySelection").on("change", function() {
     updateScale("yScale", this.value);
   });
