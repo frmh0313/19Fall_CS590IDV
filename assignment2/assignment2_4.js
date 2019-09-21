@@ -59,6 +59,9 @@ async function drawChart() {
           .filter(column => column != "Country")
           .forEach(key => {
             if (row[key].startsWith("$")) {
+              if (key == "Current account balance") {
+                row[key] = row[key].replace(/[()]/g, "");
+              }
               row[key] = +row[key]
                 .substr(1)
                 .split(",")
@@ -82,14 +85,26 @@ async function drawChart() {
     .attr("width", dimensions.width)
     .attr("height", dimensions.width + 120);
 
-  const svg = wrapper
+  const svgBoxDiv = d3
+    .select("#wrapper")
+    .append("div")
+    .attr("id", "container")
+    .style("position", "absolute")
+    .style("top", `${dimensions.padding}px`)
+    .style("left", `${dimensions.handler + dimensions.padding}px`);
+  // .attr("width", dimensions.size * 3 + dimensions.padding)
+  // .attr("height", dimensions.size * 2 + dimensions.padding);
+  // .attr("transform", `translate(${dimensions.handler + dimensions.padding})`);
+
+  // const svg = wrapper
+  const svg = svgBoxDiv
     .append("svg")
     .attr("width", dimensions.size * 3 + dimensions.padding)
-    .attr("height", dimensions.size * 2 + dimensions.padding)
-    .attr(
-      "transform",
-      `translate(${dimensions.handler + dimensions.padding}, 0)`
-    );
+    .attr("height", dimensions.size * 2 + dimensions.padding);
+  // .attr(
+  //   "transform",
+  //   `translate(${dimensions.handler + dimensions.padding}, 0)`
+  // );
 
   svg
     .append("style")
@@ -376,7 +391,9 @@ async function drawChart() {
 
   // tooltip
   function mouseover(d, selection, i, j) {
-    d3.select(`#canvas${i}${j}`)
+    // d3.select(`#canvas${i}${j}`)
+    // d3.select("#container")
+    d3.select("#wrapper")
       .append("div")
       .attr("class", "tooltip")
       .attr("id", `tooltip${i}${j}`)
