@@ -85,26 +85,14 @@ async function drawChart() {
     .attr("width", dimensions.width)
     .attr("height", dimensions.width + 120);
 
-  const svgBoxDiv = d3
-    .select("#wrapper")
-    .append("div")
-    .attr("id", "container")
-    .style("position", "absolute")
-    .style("top", `${dimensions.padding}px`)
-    .style("left", `${dimensions.handler + dimensions.padding}px`);
-  // .attr("width", dimensions.size * 3 + dimensions.padding)
-  // .attr("height", dimensions.size * 2 + dimensions.padding);
-  // .attr("transform", `translate(${dimensions.handler + dimensions.padding})`);
-
-  // const svg = wrapper
-  const svg = svgBoxDiv
+  const svg = wrapper
     .append("svg")
     .attr("width", dimensions.size * 3 + dimensions.padding)
-    .attr("height", dimensions.size * 2 + dimensions.padding);
-  // .attr(
-  //   "transform",
-  //   `translate(${dimensions.handler + dimensions.padding}, 0)`
-  // );
+    .attr("height", dimensions.size * 2 + dimensions.padding)
+    .attr(
+      "transform",
+      `translate(${dimensions.handler + dimensions.padding}, 0)`
+    );
 
   svg
     .append("style")
@@ -391,25 +379,30 @@ async function drawChart() {
 
   // tooltip
   function mouseover(d, selection, i, j) {
+    console.log(`mouseover: [${i}, ${j}]`);
     // d3.select(`#canvas${i}${j}`)
     // d3.select("#container")
-    d3.select("#wrapper")
+    // d3.select("#wrapper")
+    // d3.select(`#container${i}${j}`)
+    d3.select(`#wrapper`)
       .append("div")
       .attr("class", "tooltip")
       .attr("id", `tooltip${i}${j}`)
+      .style("position", "absolute")
       .style("width", "auto")
       .style("height", "auto")
       .style("background-color", "white")
       .style("border", "solid")
       .style("border-width", "2px")
       .style("border-radius", "5px")
-      .style("padding", "5px")
-      .style("box-shadow", "4px 4px 10px rgba(0, 0, 0, 0.4)");
+      .style("padding", "5px");
+    // .style("box-shadow", "4px 4px 10px rgba(0, 0, 0, 0.4)");
 
     d3.select(selection).style("stroke", "black");
   }
 
   function mousemove(d, selection, i, j) {
+    console.log(`mousemove: [${i}, ${j}]`);
     let xSelected = d3.select(`#xSelection${i}${j}`).property("value");
     let ySelected = d3.select(`#ySelection${i}${j}`).property("value");
     let colorSelected = d3.select(`#colorSelection${i}${j}`).property("value");
@@ -425,11 +418,14 @@ async function drawChart() {
   <p>${colorSelected}: ${d[colorSelected]}</p>`
       )
       .style("position", "absolute")
-      .style("left", `${d3.mouse(selection)[0] + 100}px`)
-      .style("top", `${d3.mouse(selection)[1]}px`);
+      .style("left", `${d3.event.pageX + 70}px`)
+      .style("top", `${d3.event.pageY}px`);
+
+    d3.select(`#tooltip${i}${j}`).raise();
   }
 
   function mouseleave(d, selection, i, j) {
+    console.log(`mouseleave: [${i}, ${j}]`);
     d3.select(`#tooltip${i}${j}`).remove();
     d3.select(selection)
       .style("stroke", "gray")
@@ -480,15 +476,12 @@ async function drawChart() {
       .attr("opacity", 0.7)
       .attr("country", d => d.Country)
       .on("mouseover", function(d) {
-        console.log(`mouseover: [${i}, ${j}]`);
         mouseover(d, this, i, j);
       })
       .on("mousemove", function(d) {
-        console.log(`mousemove: [${i}, ${j}]`);
         mousemove(d, this, i, j);
       })
       .on("mouseleave", function(d) {
-        console.log(`mouseleave: [${i}, ${j}]`);
         mouseleave(d, this, i, j);
       });
     // axes
@@ -599,6 +592,7 @@ async function drawChart() {
   }
 
   cell.call(brush, circle);
+  circle.raise();
 
   // connect update function to each selection in each cell
   cell.each(function([j, i]) {
