@@ -3,32 +3,17 @@
   <title>Task2: Widgets</title>
 </head>
 <body>
-  <div id="widgets">
-    <div id="dropDownMenus">
-      <label for="ySelection">Y axis</label>
-      <select id="ySelection" class="linearScale"></select>
-      <label for="xSelection">X axis</label>
-      <select id="xSelection" class="linearScale"></select>
-      <label for="colorSelection">Color</label>
-      <select id="colorSelection" class="scaleSelection"></select>
-      <label for="areaSelection">Area</label>
-      <select id="areaSelection" class="linearScale"></select>
-    </div>
-    <div id="slider">
-      <label>Area slider</label>
-      <input
-        id="value-simple"
-        type="number"
-        stlye="display:inline"
-        min="0"
-        max="300"
-      />
-      <label>%</label>
+  <div id="wrapper">
+    <div id="widgets"></div>
+      <div id="slider"></div>
     </div>
   </div>
-
-  <div id="wrapper"></div>
   <script src="https://unpkg.com/d3-simple-slider"></script>
+  <script
+    type="text/javascript"
+    src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.js"
+  ></script>
   <script type="text/javascript" src="https://d3js.org/d3.v5.min.js"></script>
+  <script type="text/javascript" src="countryContinent.js"></script>
   <script type="text/javascript" src="assignment2_2.js"></script>
 </body>
