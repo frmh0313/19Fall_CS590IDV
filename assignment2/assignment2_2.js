@@ -32,7 +32,7 @@ let dimensions = {
   margin: {
     top: 50,
     right: 55,
-    bottom: 40,
+    bottom: 50,
     left: 100
   }
 };
@@ -49,17 +49,11 @@ let legendColor;
 let legendColorTitle;
 let legendColorBars;
 
-// TODO
-// 1. Add legends - and implement its transition
-// 2. Manage overlaps of yAxis numbers - translate graphs for allowing more space for numbers
-// 3. Deal with negative numbers - color scale, exclude them in area scale
-
 async function drawFunction() {
   dimensions.boundedHeight =
     dimensions.height - dimensions.margin.top - dimensions.margin.bottom;
   dimensions.boundedWidth =
     dimensions.width - dimensions.margin.left - dimensions.margin.right;
-  // continentCountry = import("./countryContinent").then(data => data);
   dataSet = await d3
     .csv("./factbook.csv")
     .then(data =>
@@ -169,7 +163,11 @@ async function drawFunction() {
     .attr("id", "areaSelection")
     .selectAll("option")
     .append("option")
-    .data(columns.filter(c => !columnsWithNegative.has(c)))
+    .data(
+      columns.filter(
+        c => !(columnsWithNegative.has(c) || c == "Country" || c == "Continent")
+      )
+    )
     .join("option")
     .attr("value", d => d)
     .text(d => d);
@@ -193,7 +191,6 @@ async function drawFunction() {
     .domain([0, d3.max(dataSet.map(row => row["GDP per capita"]))])
     .range([0, dimensions.boundedWidth]);
 
-  console.log(d3.select("#xSelection").property("value"));
   scales.yScale = d3
     .scaleLinear()
     .domain([0, 90])
@@ -269,7 +266,7 @@ async function drawFunction() {
       let colorSelected = d3.select("#colorSelection").property("value");
       return scales.colorScale(d[colorSelected]);
     })
-    // .style("opacity", "0.7")
+    .style("opacity", "0.7")
     .attr("stroke", "black");
 
   xAxisGenerator = d3.axisBottom(scales.xScale);
@@ -281,7 +278,7 @@ async function drawFunction() {
 
   xAxisLabel = xAxis
     .append("text")
-    .attr("x", dimensions.boundedWidth / 2)
+    .attr("x", (dimensions.boundedWidth * 6) / 7)
     .attr("y", dimensions.margin.bottom - 10)
     .attr("fill", "black")
     .attr("font-size", "1.4em")
@@ -300,6 +297,7 @@ async function drawFunction() {
     .style("font-size", "1.4em")
     .style("text-anchor", "start");
   sliderDiv = cellHandler.append("div").attr("id", "slider");
+
   legend = cellHandler
     .append("g")
     .append("svg")
@@ -332,6 +330,7 @@ async function drawFunction() {
     .join("circle")
     .attr("cx", legendCircleX)
     .attr("cy", d => legendCircleY - scales.areaScale(d))
+    .attr("cyOriginal", d => legendCircleY - scales.areaScale(d))
     .attr("r", d => scales.areaScale(d))
     .attr("rOriginal", d => scales.areaScale(d))
     .style("fill", "none")
@@ -372,8 +371,8 @@ async function drawFunction() {
   legendColorBarScale = d3
     .legendColor()
     .shapeWidth(45)
-    .cells(5)
-    .orient("horizontal")
+    .cells(9)
+    .orient("vertical")
     .scale(scales.colorScale);
 
   let legendColorY = 300;
@@ -391,7 +390,6 @@ async function drawFunction() {
   legendColorBars.call(legendColorBarScale);
 
   // slider
-
   sliderDiv.append("label").text("Area Slider");
 
   sliderInput = sliderDiv
@@ -422,9 +420,7 @@ async function drawFunction() {
           "cy",
           d => legendCircleY - (scales.areaScale(d) * inputValue) / 100
         )
-        .attr("r", function() {
-          return (d3.select(this).attr("rOriginal") * inputValue) / 100;
-        });
+        .attr("r", d => (scales.areaScale(d) * inputValue) / 100);
 
       legendCircleLines
         .transition()
@@ -477,6 +473,7 @@ async function drawFunction() {
     )
     .fill("skyblue")
     .on("onchange", function(val) {
+      console.log("slider value: ", val);
       sliderInput.attr("value", null);
 
       sliderInput
@@ -493,10 +490,8 @@ async function drawFunction() {
       legendCircles
         .transition()
         .duration(1000)
-        .attr("cy", d => legendCircleY - val * scales.areaScale(d))
-        .attr("r", function() {
-          return d3.select(this).attr("rOriginal") * val;
-        });
+        .attr("cy", d => legendCircleY - scales.areaScale(d) * val)
+        .attr("r", d => scales.areaScale(d) * val);
 
       legendCircleLines
         .transition()
@@ -562,9 +557,21 @@ function updateScale(scale, selectedOption) {
 
   if (scale == "xScale") {
     selectedScale.range([0, dimensions.boundedWidth]);
-
+    let longNumbers = [
+      "Current account balance",
+      "Electricity consumption",
+      "Electricity production",
+      "Exports",
+      "GDP",
+      "Natural gas consumption",
+      "Population",
+      "Reserves of foreign exchange & gold"
+    ];
     xAxisGenerator = d3.axisBottom(selectedScale);
 
+    if (longNumbers.includes(selectedOption)) {
+      xAxisGenerator.ticks(5);
+    }
     xAxis
       .transition()
       .duration(1000)
@@ -602,8 +609,11 @@ function updateScale(scale, selectedOption) {
       .attr("cy", d => selectedScale(d[selectedOption]));
   } else if (scale == "areaScale") {
     // should exclude negative values
-    selectedScale.range([0, 50]);
+    sliderInput.attr("value", null);
 
+    sliderInput.attr("text", 100).property("value", 100);
+    selectedScale.range([3, 50]);
+    sliderGenerator.silentValue(1);
     dots
       .data(dataSet)
       .transition()
@@ -630,8 +640,11 @@ function updateScale(scale, selectedOption) {
       .data(newLegendValues)
       .transition()
       .duration(1000)
-      .attr("cy", d => legendCircleY - selectedScale(d))
-      .attr("r", d => selectedScale(d))
+      .attr("cx", legendCircleX)
+      .attr("cy", d => legendCircleY - scales.areaScale(d))
+      .attr("r", d => scales.areaScale(d))
+      // .attr("cy", d => legendCircleY - selectedScale(d))
+      // .attr("r", d => selectedScale(d))
       .style("fill", "none")
       .style("stroke", "black");
 
@@ -660,16 +673,44 @@ function updateScale(scale, selectedOption) {
       .text(d => d);
   } else if (scale == "colorScale") {
     if (selectedOption != "Continent") {
+      selectedScale = d3.scaleSequential(d3.interpolateRdBu).domain([
+        // -d3.max(dataSet.map(row => row[selectedOption])),
+        d3.max(dataSet.map(row => row[selectedOption])),
+        d3.min(dataSet.map(row => row[selectedOption]))
+      ]);
+
       dots
         .data(dataSet)
         .transition()
         .style("fill", d => selectedScale(d[selectedOption]))
         .duration(1000);
+
+      legendColorTitle
+        .transition()
+        .duration(1000)
+        .text(selectedOption);
+
+      legendColorBars.call(legendColorBarScale.scale(selectedScale));
     } else {
       dots
         .data(dataSet)
         .transition()
+        .duration(1000)
         .style("fill", d => continentColorScale(d[selectedOption]));
+
+      legendColorTitle
+        .transition()
+        .duration(1000)
+        .text(selectedOption);
+
+      legendColorBarScale = d3
+        .legendColor()
+        .shapeWidth(45)
+        .cells(6)
+        .orient("vertical")
+        .scale(continentColorScale);
+
+      legendColorBars.call(legendColorBarScale);
     }
   }
 }
