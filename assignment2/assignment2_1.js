@@ -1,5 +1,4 @@
 let dataSet;
-let birthRateScale;
 
 async function drawFunction() {
   let dimensions = {
