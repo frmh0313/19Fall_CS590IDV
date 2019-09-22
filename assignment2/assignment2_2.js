@@ -31,7 +31,7 @@ let dimensions = {
   height: 700,
   margin: {
     top: 50,
-    right: 15,
+    right: 55,
     bottom: 40,
     left: 100
   }
@@ -40,9 +40,11 @@ let dimensions = {
 let continentColorScale;
 
 let legend;
+let legendCircles;
 let legendCircleTitle;
 let legendCircleLines;
-
+let legendCircleX;
+let legendCircleY;
 let legendColor;
 let legendColorTitle;
 let legendColorBars;
@@ -186,74 +188,6 @@ async function drawFunction() {
 
   cellHandler.selectAll("label, select").style("display", "block");
 
-  // slider
-  sliderDiv = cellHandler.append("div").attr("id", "slider");
-
-  sliderDiv.append("label").text("Area Slider");
-
-  sliderInput = sliderDiv
-    .append("input")
-    .attr("id", "value-simple")
-    .attr("type", "number")
-    .style("display", "inline")
-    .attr("value", 100)
-    .attr("min", 0)
-    .attr("max", 300)
-    .on("change", function() {
-      console.log("onchange");
-      let inputValue = this.value;
-      console.log("value: ", inputValue);
-      sliderGenerator.silentValue(inputValue / 100);
-
-      dots
-        .transition()
-        .duration(1000)
-        .attr("r", function() {
-          return (d3.select(this).attr("rOriginal") * inputValue) / 100;
-        });
-    });
-
-  sliderDiv.append("label").text("%");
-
-  sliderGenerator = d3
-    .sliderBottom()
-    .min(0)
-    .max(3)
-    .width(260)
-    .tickFormat(d3.format(".2%"))
-    .ticks(5)
-    .default(1)
-    .handle(
-      d3
-        .symbol()
-        .type(d3.symbolCircle)
-        .size(300)
-    )
-    .fill("skyblue")
-    .on("onchange", function(val) {
-      sliderInput.attr("value", null);
-
-      sliderInput
-        .attr("text", (val * 100).toFixed(2))
-        .property("value", (val * 100).toFixed(2));
-
-      dots
-        .transition()
-        .duration(1000)
-        .attr("r", function() {
-          return d3.select(this).attr("rOriginal") * val;
-        });
-    });
-
-  slider = sliderDiv
-    .append("svg")
-    .attr("width", 700)
-    .attr("height", 100)
-    .style("display", "block")
-    .append("g")
-    .attr("transform", "translate(0, 30)")
-    .call(sliderGenerator);
-
   scales.xScale = d3
     .scaleLinear()
     .domain([0, d3.max(dataSet.map(row => row["GDP per capita"]))])
@@ -264,15 +198,6 @@ async function drawFunction() {
     .scaleLinear()
     .domain([0, 90])
     .range([dimensions.boundedHeight, 0]);
-
-  // d3.select("#dropDownMenus")
-  //   .selectAll("select")
-  //   .selectAll("option")
-  //   .append("option")
-  //   .data(columns.filter(c => c !== "Country"))
-  //   .join("option")
-  //   .attr("value", d => d)
-  //   .text(d => d);
 
   d3.select("#colorSelection")
     .append("option")
@@ -374,7 +299,7 @@ async function drawFunction() {
     .text(d3.select("#ySelection").property("value"))
     .style("font-size", "1.4em")
     .style("text-anchor", "start");
-
+  sliderDiv = cellHandler.append("div").attr("id", "slider");
   legend = cellHandler
     .append("g")
     .append("svg")
@@ -398,14 +323,17 @@ async function drawFunction() {
       format(d3.max(selectedData))
     ];
   })();
+  legendCircleX = 100;
+  legendCircleY = 250;
 
   legendCircles = legend
     .selectAll("circle")
     .data(valuesToShow)
     .join("circle")
-    .attr("cx", 50)
-    .attr("cy", d => 150 - scales.areaScale(d))
+    .attr("cx", legendCircleX)
+    .attr("cy", d => legendCircleY - scales.areaScale(d))
     .attr("r", d => scales.areaScale(d))
+    .attr("rOriginal", d => scales.areaScale(d))
     .style("fill", "none")
     .attr("stroke", "black");
 
@@ -414,13 +342,13 @@ async function drawFunction() {
     .selectAll("line")
     .data(valuesToShow)
     .join("line")
-    .attr("x1", 50)
+    .attr("x1", legendCircleX)
     .attr("x2", 150)
-    .attr("y1", d => 150 - 2 * scales.areaScale(d))
+    .attr("y1", d => legendCircleY - 2 * scales.areaScale(d))
     .attr("y2", (d, i) => {
       if (i % 2 == 1) {
-        return 150 - 2 * scales.areaScale(d) - 30;
-      } else return 150 - 2 * scales.areaScale(d);
+        return legendCircleY - 2 * scales.areaScale(d) - 10;
+      } else return legendCircleY - 2 * scales.areaScale(d);
     })
     .attr("stroke", "black")
     .style("stroke-dasharray", "2,2");
@@ -433,10 +361,10 @@ async function drawFunction() {
     .attr("x", d => 160)
     .attr("y", (d, i) => {
       if (i % 2 == 1) {
-        return 150 - 2 * scales.areaScale(d) - 30;
-      } else return 150 - 2 * scales.areaScale(d);
+        return legendCircleY - 2 * scales.areaScale(d) - 10;
+      } else return legendCircleY - 2 * scales.areaScale(d);
     })
-    .text((d, i) => valuesToShow[i])
+    .text(d => d)
     .style("font-size", 10)
     .style("display", "block")
     .attr("alignment-baseline", "middle");
@@ -448,16 +376,156 @@ async function drawFunction() {
     .orient("horizontal")
     .scale(scales.colorScale);
 
+  let legendColorY = 300;
   legendColorTitle = legend
     .append("text")
     .attr("x", 0)
-    .attr("y", 250)
+    .attr("y", legendColorY)
     .attr("dy", "0.35em")
     .text(d3.select("#colorSelection").property("value"));
 
-  legendColorBars = legend.append("g").attr("transform", `translate(0, 270)`);
+  legendColorBars = legend
+    .append("g")
+    .attr("transform", `translate(0, ${legendColorY + 20})`);
 
   legendColorBars.call(legendColorBarScale);
+
+  // slider
+
+  sliderDiv.append("label").text("Area Slider");
+
+  sliderInput = sliderDiv
+    .append("input")
+    .attr("id", "value-simple")
+    .attr("type", "number")
+    .style("display", "inline")
+    .attr("value", 100)
+    .attr("min", 0)
+    .attr("max", 300)
+    .on("change", function() {
+      console.log("onchange");
+      let inputValue = this.value;
+      console.log("value: ", inputValue);
+      sliderGenerator.silentValue(inputValue / 100);
+
+      dots
+        .transition()
+        .duration(1000)
+        .attr("r", function() {
+          return (d3.select(this).attr("rOriginal") * inputValue) / 100;
+        });
+
+      legendCircles
+        .transition()
+        .duration(1000)
+        .attr(
+          "cy",
+          d => legendCircleY - (scales.areaScale(d) * inputValue) / 100
+        )
+        .attr("r", function() {
+          return (d3.select(this).attr("rOriginal") * inputValue) / 100;
+        });
+
+      legendCircleLines
+        .transition()
+        .duration(1000)
+        .attr(
+          "y1",
+          d => legendCircleY - (2 * scales.areaScale(d) * inputValue) / 100
+        )
+        .attr("y2", (d, i) => {
+          if (i % 2 == 1) {
+            return (
+              legendCircleY - 10 - (2 * scales.areaScale(d) * inputValue) / 100
+            );
+          } else
+            return (
+              legendCircleY - 1 - (2 * scales.areaScale(d) * inputValue) / 100
+            );
+        });
+
+      legendCircleLabels
+        .transition()
+        .duration(1000)
+        .attr("y", (d, i) => {
+          if (i % 2 == 1) {
+            return (
+              legendCircleY - 10 - (2 * scales.areaScale(d) * inputValue) / 100
+            );
+          } else
+            return (
+              legendCircleY - 1 - (2 * scales.areaScale(d) * inputValue) / 100
+            );
+        });
+    });
+
+  sliderDiv.append("label").text("%");
+
+  sliderGenerator = d3
+    .sliderBottom()
+    .min(0)
+    .max(3)
+    .width(260)
+    .tickFormat(d3.format(".2%"))
+    .ticks(5)
+    .default(1)
+    .handle(
+      d3
+        .symbol()
+        .type(d3.symbolCircle)
+        .size(300)
+    )
+    .fill("skyblue")
+    .on("onchange", function(val) {
+      sliderInput.attr("value", null);
+
+      sliderInput
+        .attr("text", (val * 100).toFixed(2))
+        .property("value", (val * 100).toFixed(2));
+
+      dots
+        .transition()
+        .duration(1000)
+        .attr("r", function() {
+          return d3.select(this).attr("rOriginal") * val;
+        });
+
+      legendCircles
+        .transition()
+        .duration(1000)
+        .attr("cy", d => legendCircleY - val * scales.areaScale(d))
+        .attr("r", function() {
+          return d3.select(this).attr("rOriginal") * val;
+        });
+
+      legendCircleLines
+        .transition()
+        .duration(1000)
+        .attr("y1", d => legendCircleY - 2 * scales.areaScale(d) * val)
+        .attr("y2", (d, i) => {
+          if (i % 2 == 1) {
+            return legendCircleY - 10 - 2 * scales.areaScale(d) * val;
+          } else return legendCircleY - 1 - 2 * scales.areaScale(d) * val;
+        });
+
+      legendCircleLabels
+        .transition()
+        .duration(1000)
+        .attr("y", (d, i) => {
+          if (i % 2 == 1) {
+            return legendCircleY - 10 - 2 * scales.areaScale(d) * val;
+          } else return legendCircleY - 1 - 2 * scales.areaScale(d) * val;
+        });
+    });
+
+  slider = sliderDiv
+    .append("svg")
+    .attr("width", 700)
+    .attr("height", 100)
+    .style("display", "block")
+    .append("g")
+    .attr("transform", "translate(0, 30)")
+    .call(sliderGenerator);
 
   d3.select("#ySelection").on("change", function() {
     updateScale("yScale", this.value);
@@ -542,6 +610,54 @@ function updateScale(scale, selectedOption) {
       .duration(1000)
       .attr("r", d => selectedScale(d[selectedOption]))
       .attr("rOriginal", d => selectedScale(d[selectedOption]));
+
+    legendCircleTitle
+      .transition()
+      .duration(1000)
+      .text(selectedOption);
+    let selectedData = dataSet.map(row => row[selectedOption]);
+    let newLegendValues = [
+      d3.format(".2f")(d3.min(selectedData)),
+      d3.format(".2f")(d3.mean(selectedData)),
+      d3.format(".2f")(d3.max(selectedData))
+    ];
+
+    console.log(newLegendValues);
+
+    legendCircles = legendCircles.data(newLegendValues);
+
+    legendCircles
+      .data(newLegendValues)
+      .transition()
+      .duration(1000)
+      .attr("cy", d => legendCircleY - selectedScale(d))
+      .attr("r", d => selectedScale(d))
+      .style("fill", "none")
+      .style("stroke", "black");
+
+    legendCircleLines
+      .data(newLegendValues)
+      .transition()
+      .duration(1000)
+      .attr("x1", legendCircleX)
+      .attr("x2", 150)
+      .attr("y1", d => legendCircleY - 2 * selectedScale(d))
+      .attr("y2", (d, i) => {
+        if (i % 2 == 1) {
+          return legendCircleY - 2 * selectedScale(d) - 10;
+        } else return legendCircleY - 2 * selectedScale(d);
+      });
+
+    legendCircleLabels
+      .data(newLegendValues)
+      .transition()
+      .duration(1000)
+      .attr("y", (d, i) => {
+        if (i % 2 == 1) {
+          return legendCircleY - 2 * selectedScale(d) - 10;
+        } else return legendCircleY - 2 * selectedScale(d);
+      })
+      .text(d => d);
   } else if (scale == "colorScale") {
     if (selectedOption != "Continent") {
       dots
