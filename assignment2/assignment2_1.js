@@ -1,14 +1,9 @@
 let dataSet;
 let birthRateScale;
-let birthRateBins = new Set();
-
-function findBirthRateBin(value) {
-  return `${value / 10}0-${value / 10}9`;
-}
 
 async function drawFunction() {
   let dimensions = {
-    width: window.innerWidth * 0.9,
+    width: 800,
     height: 700,
     margin: {
       top: 15,
@@ -54,9 +49,6 @@ async function drawFunction() {
           }
         });
 
-        row["Birth rate bin"] = findBirthRateBin(row["Birth rate"]);
-        birthRateBins.add(row["Birth rate bin"]);
-
         return row;
       });
     });
@@ -78,7 +70,6 @@ async function drawFunction() {
 
   const xScale = d3
     .scaleLinear()
-    // .domain([0, d3.max(dataSet.map(row => row["GDP per capita"]))])
     .domain([0, 45000])
     .range([0, dimensions.boundedWidth]);
 
@@ -91,7 +82,7 @@ async function drawFunction() {
 
   const xAxisLabel = xAxis
     .append("text")
-    .attr("x", dimensions.boundedWidth / 2)
+    .attr("x", (dimensions.boundedWidth * 5) / 6)
     .attr("y", dimensions.margin.bottom - 10)
     .attr("fill", "black")
     .attr("font-size", "1.4em")
@@ -99,7 +90,6 @@ async function drawFunction() {
 
   const yScale = d3
     .scaleLinear()
-    // .domain([0, d3.max(dataSet.map(row => row["Life expectancy at birth"]))])
     .domain([0, 90])
     .range([dimensions.boundedHeight, 0]);
 
@@ -109,12 +99,11 @@ async function drawFunction() {
 
   const yAxisLabel = yAxis
     .append("text")
-    .attr("x", -dimensions.boundedHeight / 2)
-    .attr("y", -dimensions.margin.left + 10)
+    .attr("x", dimensions.margin.left + 30)
+    .attr("y", dimensions.margin.top + 10)
     .attr("fill", "black")
     .text("Life expectancy at birth")
     .style("font-size", "1.4em")
-    .style("transform", "rotate(-90deg)")
     .style("text-anchor", "middle");
 
   const areaScale = d3
@@ -122,27 +111,97 @@ async function drawFunction() {
     .domain([0, d3.max(dataSet.map(row => row["Population"]))])
     .range([3, 50]);
 
-  const colorScheme5 = ["#DEEDCF", "#74C67A", "#1D9A6C", "#137177", "#0A2F51"];
-
-  const sortedBirthRateBins = [...birthRateBins].sort(
-    (a, b) => +a.split("-")[0] - +b.split("-")[0]
-  );
-
   birthRateScale = d3
-    .scaleOrdinal()
-    .domain(sortedBirthRateBins)
-    .range(colorScheme5);
+    .scaleSequential(d3.interpolateGreens)
+    .domain([
+      d3.min(dataSet.map(row => row["Birth rate"])),
+      d3.max(dataSet.map(row => row["Birth rate"]))
+    ]);
 
   const dots = bounds
+    .append("g")
     .selectAll("circle")
-    .data(dataSet)
+    .data(dataSet.sort((a, b) => b["Population"] - a["Population"]))
     .join("circle")
     .attr("cx", d => xScale(d["GDP per capita"]))
     .attr("cy", d => yScale(d["Life expectancy at birth"]))
     .attr("r", d => areaScale(d["Population"]))
-    .style("fill", d => birthRateScale(d["Birth rate bin"]))
+    .style("fill", d => birthRateScale(d["Birth rate"]))
     .style("opacity", "0.7")
     .attr("stroke", "black");
+
+  // legends
+  // Birth rate Legends
+  const legendBirthRate = bounds.append("g");
+
+  const legendBirthRateScale = d3
+    .legendColor()
+    .shapeWidth(30)
+    .cells(7)
+    .orient("horizontal")
+    .scale(birthRateScale);
+
+  const legendBirthRateBars = legendBirthRate
+    .append("g")
+    .attr("transform", `translate(500, 400)`);
+
+  const legendBirthRateTitle = legendBirthRate
+    .append("text")
+    .attr("x", 500)
+    .attr("y", 390)
+    .attr("dy", "0.35em")
+    .text("Birth rate");
+
+  legendBirthRateBars.call(legendBirthRateScale);
+
+  // Population legends
+  let valuesToShow = [50000000, 500000000, 1000000000, 1500000000];
+  let valuesToShowAbbr = ["50M", "500M", "1B", "1.5B"];
+  let xCircle = 550;
+  let xLabel = xCircle + 150;
+  let yCircle = 600;
+
+  const legendPopulation = bounds.append("g");
+
+  const legendPopulationTitle = legendPopulation
+    .append("text")
+    .attr("x", 500)
+    .attr("y", 470)
+    .attr("dy", "0.35em")
+    .text("Population");
+
+  const legendPopulationCircles = legendPopulation
+    .selectAll("circle")
+    .data(valuesToShow)
+    .join("circle")
+    .attr("cx", xCircle)
+    .attr("cy", d => yCircle - areaScale(d))
+    .attr("r", d => areaScale(d))
+    .style("fill", "none")
+    .attr("stroke", "black");
+
+  const legendPopulationLines = bounds
+    .append("g")
+    .selectAll("line")
+    .data(valuesToShow)
+    .join("line")
+    .attr("x1", d => xCircle + areaScale(d))
+    .attr("x2", xLabel)
+    .attr("y1", d => yCircle - areaScale(d))
+    .attr("y2", d => yCircle - areaScale(d))
+    .attr("stroke", "black")
+    .style("stroke-dasharray", "2,2");
+
+  const legendPopulationLabels = bounds
+    .append("g")
+    .selectAll("text")
+    .data(valuesToShow)
+    .join("text")
+    .attr("x", xLabel)
+    .attr("y", d => yCircle - areaScale(d))
+    .text((d, i) => valuesToShowAbbr[i])
+    .style("font-size", 10)
+    .attr("alignment-baseline", "middle");
 }
 
 drawFunction();
