@@ -49,6 +49,8 @@ let legendColor;
 let legendColorTitle;
 let legendColorBars;
 
+// TODO
+// add gridlines
 async function drawFunction() {
   dimensions.boundedHeight =
     dimensions.height - dimensions.margin.top - dimensions.margin.bottom;
@@ -232,7 +234,9 @@ async function drawFunction() {
   scales.colorScale = d3
     .scaleSequential(d3.interpolateGreens)
     .domain([
-      0,
+      d3.min(
+        dataSet.map(row => row[d3.select("#colorSelection").property("value")])
+      ),
       d3.max(
         dataSet.map(row => row[d3.select("#colorSelection").property("value")])
       )
@@ -673,11 +677,13 @@ function updateScale(scale, selectedOption) {
       .text(d => d);
   } else if (scale == "colorScale") {
     if (selectedOption != "Continent") {
-      selectedScale = d3.scaleSequential(d3.interpolateRdBu).domain([
-        // -d3.max(dataSet.map(row => row[selectedOption])),
-        d3.max(dataSet.map(row => row[selectedOption])),
-        d3.min(dataSet.map(row => row[selectedOption]))
-      ]);
+      if (columnsWithNegative.has(selectedOption)) {
+        selectedScale = d3.scaleSequential(d3.interpolateRdBu).domain([
+          // -d3.max(dataSet.map(row => row[selectedOption])),
+          d3.max(dataSet.map(row => row[selectedOption])),
+          d3.min(dataSet.map(row => row[selectedOption]))
+        ]);
+      }
 
       dots
         .data(dataSet)
