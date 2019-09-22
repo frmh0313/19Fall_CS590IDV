@@ -1,4 +1,3 @@
-let birthRateBins = new Set();
 let dataSet;
 let columns;
 let columnsWithNegative = new Set();
@@ -31,19 +30,34 @@ let dimensions = {
   width: 800,
   height: 700,
   margin: {
-    top: 15,
+    top: 50,
     right: 15,
     bottom: 40,
-    left: 60
+    left: 100
   }
 };
+
+let continentColorScale;
+
+let legend;
+let legendCircleTitle;
+let legendCircleLines;
+
+let legendColor;
+let legendColorTitle;
+let legendColorBars;
+
+// TODO
+// 1. Add legends - and implement its transition
+// 2. Manage overlaps of yAxis numbers - translate graphs for allowing more space for numbers
+// 3. Deal with negative numbers - color scale, exclude them in area scale
 
 async function drawFunction() {
   dimensions.boundedHeight =
     dimensions.height - dimensions.margin.top - dimensions.margin.bottom;
   dimensions.boundedWidth =
     dimensions.width - dimensions.margin.left - dimensions.margin.right;
-
+  // continentCountry = import("./countryContinent").then(data => data);
   dataSet = await d3
     .csv("./factbook.csv")
     .then(data =>
@@ -85,15 +99,21 @@ async function drawFunction() {
 
         return row;
       });
+    })
+    .then(data => {
+      columns.push("Continent");
+      columns.sort();
+      return data.map(row => {
+        for ([continent, countryArr] of Object.entries(continentCountry)) {
+          if (countryArr.includes(row.Country)) {
+            row.Continent = continent;
+            return row;
+          }
+        }
+      });
     });
 
   console.log(dataSet);
-
-  // TODO
-  // add legends and implement transitioning of them
-  // margin considering the long numbers
-  // translating xAxis considering the size of bubbles. - adding padding? zoom in as slider moves
-  // synchronize the value of input element and slider
 
   wrapper = d3
     .select("#wrapper")
@@ -108,50 +128,77 @@ async function drawFunction() {
       `translate(${dimensions.margin.left}px, ${dimensions.margin.top}px)`
     );
 
-  scales.xScale = d3
-    .scaleLinear()
-    .domain([0, d3.max(dataSet.map(row => row["GDP per capita"]))])
-    .range([0, dimensions.boundedWidth]);
+  const cellHandler = d3
+    .select("#wrapper")
+    .append("div")
+    .style("position", "absolute")
+    .style("float", "left")
+    .style("top", `${dimensions.margin.top}px`)
+    .style("left", `${dimensions.width + dimensions.margin.right * 2}px`);
 
-  console.log(d3.select("#xSelection").property("value"));
-  scales.yScale = d3
-    .scaleLinear()
-    .domain([0, 90])
-    .range([dimensions.boundedHeight, 0]);
+  const yLabel = cellHandler.append("label").text("yAxis");
 
-  sliderGenerator = d3
-    .sliderBottom()
-    .min(0)
-    .max(3)
-    .width(600)
-    .tickFormat(d3.format(".2%"))
-    .ticks(10)
-    .default(1)
-    .handle(
-      d3
-        .symbol()
-        .type(d3.symbolCircle)
-        .size(300)
-    )
-    .fill("skyblue")
-    .on("onchange", function(val) {
-      sliderInput.attr("value", null);
+  const ySelection = cellHandler
+    .append("select")
+    .attr("id", "ySelection")
+    .selectAll("option")
+    .append("option")
+    .data(columns.filter(c => !(c == "Country" || c == "Continent")))
+    .join("option")
+    .attr("value", d => d)
+    .text(d => d);
 
-      sliderInput
-        .attr("text", (val * 100).toFixed(2))
-        .property("value", (val * 100).toFixed(2)); // property should be used instead of attr...
+  const xLabel = cellHandler.append("label").text("xAxis");
 
-      dots
-        .transition()
-        .duration(1000)
-        .attr("r", function() {
-          return d3.select(this).attr("rOriginal") * val;
-        });
-    });
+  const xSelection = cellHandler
+    .append("select")
+    .attr("id", "xSelection")
+    .selectAll("option")
+    .append("option")
+    .data(columns.filter(c => !(c == "Country" || c == "Continent")))
+    .join("option")
+    .attr("value", d => d)
+    .text(d => d);
 
-  sliderInput = d3
-    .select("#value-simple")
+  const areaLabel = cellHandler.append("label").text("Area");
+
+  const areaSelection = cellHandler
+    .append("select")
+    .attr("id", "areaSelection")
+    .selectAll("option")
+    .append("option")
+    .data(columns.filter(c => !columnsWithNegative.has(c)))
+    .join("option")
+    .attr("value", d => d)
+    .text(d => d);
+
+  const colorLabel = cellHandler.append("label").text("Color");
+
+  const colorSelection = cellHandler
+    .append("select")
+    .attr("id", "colorSelection")
+    .selectAll("option")
+    .append("option")
+    .data(columns.filter(c => c != "Country"))
+    .join("option")
+    .attr("value", d => d)
+    .text(d => d);
+
+  cellHandler.selectAll("label, select").style("display", "block");
+
+  // slider
+  sliderDiv = cellHandler.append("div").attr("id", "slider");
+
+  sliderDiv.append("label").text("Area Slider");
+
+  sliderInput = sliderDiv
+    .append("input")
+    .attr("id", "value-simple")
+    .attr("type", "number")
+    .style("display", "inline")
     .attr("value", 100)
+    .attr("min", 0)
+    .attr("max", 300)
     .on("change", function() {
       console.log("onchange");
       let inputValue = this.value;
@@ -166,30 +213,73 @@ async function drawFunction() {
         });
     });
 
-  slider = d3
-    .select("#slider")
+  sliderDiv.append("label").text("%");
+
+  sliderGenerator = d3
+    .sliderBottom()
+    .min(0)
+    .max(3)
+    .width(260)
+    .tickFormat(d3.format(".2%"))
+    .ticks(5)
+    .default(1)
+    .handle(
+      d3
+        .symbol()
+        .type(d3.symbolCircle)
+        .size(300)
+    )
+    .fill("skyblue")
+    .on("onchange", function(val) {
+      sliderInput.attr("value", null);
+
+      sliderInput
+        .attr("text", (val * 100).toFixed(2))
+        .property("value", (val * 100).toFixed(2));
+
+      dots
+        .transition()
+        .duration(1000)
+        .attr("r", function() {
+          return d3.select(this).attr("rOriginal") * val;
+        });
+    });
+
+  slider = sliderDiv
     .append("svg")
     .attr("width", 700)
     .attr("height", 100)
     .style("display", "block")
     .append("g")
-    .attr("transform", "translate(30, 30)")
+    .attr("transform", "translate(0, 30)")
     .call(sliderGenerator);
 
-  d3.select("#dropDownMenus")
-    .selectAll("select")
-    .selectAll("option")
-    .append("option")
-    .data(columns.filter(c => c !== "Country"))
-    .join("option")
-    .attr("value", d => d)
-    .text(d => d);
+  scales.xScale = d3
+    .scaleLinear()
+    .domain([0, d3.max(dataSet.map(row => row["GDP per capita"]))])
+    .range([0, dimensions.boundedWidth]);
+
+  console.log(d3.select("#xSelection").property("value"));
+  scales.yScale = d3
+    .scaleLinear()
+    .domain([0, 90])
+    .range([dimensions.boundedHeight, 0]);
+
+  // d3.select("#dropDownMenus")
+  //   .selectAll("select")
+  //   .selectAll("option")
+  //   .append("option")
+  //   .data(columns.filter(c => c !== "Country"))
+  //   .join("option")
+  //   .attr("value", d => d)
+  //   .text(d => d);
 
   d3.select("#colorSelection")
     .append("option")
     .join("option")
     .attr("value", "Country")
     .text("Country");
+
   // setting default options
   d3.select("#ySelection")
     .selectAll("option")
@@ -219,13 +309,16 @@ async function drawFunction() {
 
   scales.colorScale = d3
     .scaleSequential(d3.interpolateGreens)
-    // .scaleSequential(d3.interpolateGreens)
     .domain([
       0,
       d3.max(
         dataSet.map(row => row[d3.select("#colorSelection").property("value")])
       )
     ]);
+
+  continentColorScale = d3
+    .scaleOrdinal(d3.schemeSet1)
+    .domain(Object.keys(continentCountry));
 
   dots = bounds
     .selectAll("circle")
@@ -275,13 +368,97 @@ async function drawFunction() {
 
   yAxisLabel = yAxis
     .append("text")
-    .attr("x", -dimensions.boundedHeight / 2)
-    .attr("y", -dimensions.margin.left + 10)
+    .attr("x", 20)
+    .attr("y", -20)
     .attr("fill", "black")
     .text(d3.select("#ySelection").property("value"))
     .style("font-size", "1.4em")
-    .style("transform", "rotate(-90deg)")
-    .style("text-anchor", "middle");
+    .style("text-anchor", "start");
+
+  legend = cellHandler
+    .append("g")
+    .append("svg")
+    .attr("width", 300)
+    .attr("height", 500);
+
+  legendCircleTitle = legend
+    .append("text")
+    .attr("x", 0)
+    .attr("y", 20)
+    .attr("dy", "0.35em")
+    .text(d3.select("#areaSelection").property("value"));
+
+  let valuesToShow = (() => {
+    let selected = d3.select("#areaSelection").property("value");
+    let selectedData = dataSet.map(row => row[selected]);
+    let format = d3.format(".2f");
+    return [
+      format(d3.min(selectedData)),
+      format(d3.mean(selectedData)),
+      format(d3.max(selectedData))
+    ];
+  })();
+
+  legendCircles = legend
+    .selectAll("circle")
+    .data(valuesToShow)
+    .join("circle")
+    .attr("cx", 50)
+    .attr("cy", d => 150 - scales.areaScale(d))
+    .attr("r", d => scales.areaScale(d))
+    .style("fill", "none")
+    .attr("stroke", "black");
+
+  legendCircleLines = legend
+    .append("g")
+    .selectAll("line")
+    .data(valuesToShow)
+    .join("line")
+    .attr("x1", 50)
+    .attr("x2", 150)
+    .attr("y1", d => 150 - 2 * scales.areaScale(d))
+    .attr("y2", (d, i) => {
+      if (i % 2 == 1) {
+        return 150 - 2 * scales.areaScale(d) - 30;
+      } else return 150 - 2 * scales.areaScale(d);
+    })
+    .attr("stroke", "black")
+    .style("stroke-dasharray", "2,2");
+
+  legendCircleLabels = legend
+    .append("g")
+    .selectAll("text")
+    .data(valuesToShow)
+    .join("text")
+    .attr("x", d => 160)
+    .attr("y", (d, i) => {
+      if (i % 2 == 1) {
+        return 150 - 2 * scales.areaScale(d) - 30;
+      } else return 150 - 2 * scales.areaScale(d);
+    })
+    .text((d, i) => valuesToShow[i])
+    .style("font-size", 10)
+    .style("display", "block")
+    .attr("alignment-baseline", "middle");
+
+  legendColorBarScale = d3
+    .legendColor()
+    .shapeWidth(45)
+    .cells(5)
+    .orient("horizontal")
+    .scale(scales.colorScale);
+
+  legendColorTitle = legend
+    .append("text")
+    .attr("x", 0)
+    .attr("y", 250)
+    .attr("dy", "0.35em")
+    .text(d3.select("#colorSelection").property("value"));
+
+  legendColorBars = legend.append("g").attr("transform", `translate(0, 270)`);
+
+  legendColorBars.call(legendColorBarScale);
+
   d3.select("#ySelection").on("change", function() {
     updateScale("yScale", this.value);
   });
@@ -336,7 +513,7 @@ function updateScale(scale, selectedOption) {
       .duration(1000)
       .text(selectedOption);
   } else if (scale == "yScale") {
-    selectedScale.range([dimensions.boundedHeight, 0]); // sometimes it should cover negative values.
+    selectedScale.range([dimensions.boundedHeight, 0]);
 
     yAxisGenerator = d3.axisLeft(selectedScale);
 
@@ -366,11 +543,18 @@ function updateScale(scale, selectedOption) {
       .attr("r", d => selectedScale(d[selectedOption]))
       .attr("rOriginal", d => selectedScale(d[selectedOption]));
   } else if (scale == "colorScale") {
-    dots
-      .data(dataSet)
-      .transition()
-      .style("fill", d => selectedScale(d[selectedOption]))
-      .duration(1000);
+    if (selectedOption != "Continent") {
+      dots
+        .data(dataSet)
+        .transition()
+        .style("fill", d => selectedScale(d[selectedOption]))
+        .duration(1000);
+    } else {
+      dots
+        .data(dataSet)
+        .transition()
+        .style("fill", d => continentColorScale(d[selectedOption]));
+    }
   }
 }
 
