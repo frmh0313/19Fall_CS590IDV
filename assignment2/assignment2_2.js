@@ -49,8 +49,6 @@ let legendColor;
 let legendColorTitle;
 let legendColorBars;
 
-// TODO
-// add gridlines
 async function drawFunction() {
   dimensions.boundedHeight =
     dimensions.height - dimensions.margin.top - dimensions.margin.bottom;
@@ -270,7 +268,7 @@ async function drawFunction() {
       let colorSelected = d3.select("#colorSelection").property("value");
       return scales.colorScale(d[colorSelected]);
     })
-    .style("opacity", "0.7")
+    // .style("opacity", "0.7")
     .attr("stroke", "black");
 
   xAxisGenerator = d3.axisBottom(scales.xScale);
@@ -325,7 +323,7 @@ async function drawFunction() {
       format(d3.max(selectedData))
     ];
   })();
-  legendCircleX = 100;
+  legendCircleX = 120;
   legendCircleY = 250;
 
   legendCircles = legend
@@ -551,6 +549,7 @@ function updateScale(scale, selectedOption) {
 
   let selectedScale = scales[scale];
   if (columnsWithNegative.has(selectedOption)) {
+    console.log("columnsWithNegative has ", selectedOption);
     selectedScale.domain([
       d3.min(dataSet.map(row => row[selectedOption])),
       d3.max(dataSet.map(row => row[selectedOption]))
@@ -576,16 +575,17 @@ function updateScale(scale, selectedOption) {
     if (longNumbers.includes(selectedOption)) {
       xAxisGenerator.ticks(5);
     }
-    xAxis
-      .transition()
-      .duration(1000)
-      .call(xAxisGenerator);
 
     dots
       .data(dataSet)
       .transition()
       .duration(1000)
       .attr("cx", d => selectedScale(d[selectedOption]));
+
+    xAxis
+      .transition()
+      .duration(1000)
+      .call(xAxisGenerator);
 
     xAxisLabel
       .transition()
@@ -629,6 +629,7 @@ function updateScale(scale, selectedOption) {
       .transition()
       .duration(1000)
       .text(selectedOption);
+
     let selectedData = dataSet.map(row => row[selectedOption]);
     let newLegendValues = [
       d3.format(".2f")(d3.min(selectedData)),
@@ -637,8 +638,6 @@ function updateScale(scale, selectedOption) {
     ];
 
     console.log(newLegendValues);
-
-    legendCircles = legendCircles.data(newLegendValues);
 
     legendCircles
       .data(newLegendValues)
