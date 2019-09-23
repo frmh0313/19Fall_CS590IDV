@@ -559,204 +559,119 @@ async function drawChart() {
     let areaSelected = d3.select(`#areaSelection${i}${j}`).property("value");
     let colorSelected = d3.select(`#colorSelection${i}${j}`).property("value");
 
-    if (j == 0) {
-      let legendCircleLeftX = 150;
-      let legendCircleLeftY = 150;
-      let legendColorLeftY = 10;
-      let legendColorLeftX = 250;
-      legendCircleTitles[i][j] = d3
-        .select(this)
-        .append("text")
-        .attr("x", legendCircleLeftX)
-        .attr("y", 10)
-        .attr("text-anchor", "end")
-        .attr("dy", "0.35em")
-        .text(areaSelected);
+    let legendCircleY = 150;
+    let legendColorY = 10;
+    let legendCircleLeftX = 150;
+    let legendColorLeftX = 250;
+    let legendColorRightX = 100;
+    let legendCircleRightX = 270;
 
-      legendCircles[i][j] = d3
-        .select(this)
-        .selectAll("circle")
-        .data(legendValuesToShow[i][j])
-        .join("circle")
-        .attr("cx", legendCircleLeftX)
-        .attr("cy", d => legendCircleLeftY - scales.areaScales[areaSelected](d))
-        .attr("cyOriginal", d => {
-          return legendCircleLeftY - scales.areaScales[areaSelected](d);
-        })
-        .attr("r", d => scales.areaScales[areaSelected](d))
-        .attr("rOriginal", d => scales.areaScales[areaSelected](d))
-        .attr("fill", "none")
-        .attr("stroke", "black");
+    legendCircleTitles[i][j] = d3
+      .select(this)
+      .append("text")
+      .attr("x", () => {
+        if (j == 0) return legendCircleLeftX;
+        else if (j == 1) return legendCircleRightX;
+      })
+      .attr("y", 10)
+      .attr("text-anchor", "end")
+      .attr("dy", "0.35em")
+      .text(areaSelected);
 
-      legendCircleLines[i][j] = d3
-        .select(this)
-        .append("g")
-        .selectAll("line")
-        .data(legendValuesToShow[i][j])
-        .join("line")
-        .attr("x1", legendCircleLeftX)
-        .attr("x2", legendCircleLeftX - 50)
-        .attr(
-          "y1",
-          d => legendCircleLeftY - 2 * scales.areaScales[areaSelected](d)
-        )
-        .attr("y2", (d, idx) => {
-          if (idx % 2 == 1) {
-            return (
-              legendCircleLeftY - 2 * scales.areaScales[areaSelected](d) - 15
-            );
-          } else
-            return legendCircleLeftY - 2 * scales.areaScales[areaSelected](d);
-        })
-        .attr("stroke", "black")
-        .style("stroke-dasharray", "2,2");
+    legendCircles[i][j] = d3
+      .select(this)
+      .selectAll("circle")
+      .data(legendValuesToShow[i][j])
+      .join("circle")
+      .attr("cx", () => {
+        if (j == 0) return legendCircleLeftX;
+        else if (j == 1) return legendCircleRightX;
+      })
+      .attr("cy", d => legendCircleY - scales.areaScales[areaSelected](d))
+      .attr("cyOriginal", d => {
+        return legendCircleY - scales.areaScales[areaSelected](d);
+      })
+      .attr("r", d => scales.areaScales[areaSelected](d))
+      .attr("rOriginal", d => scales.areaScales[areaSelected](d))
+      .attr("fill", "none")
+      .attr("stroke", "black");
 
-      legendCircleLabels[i][j] = d3
-        .select(this)
-        .append("g")
-        .selectAll("text")
-        .data(legendValuesToShow[i][j])
-        .join("text")
-        .attr("x", legendCircleLeftX - 60)
-        .attr("y", (d, idx) => {
-          if (idx % 2 == 1) {
-            return (
-              legendCircleLeftY - 2 * scales.areaScales[areaSelected](d) - 15
-            );
-          } else
-            return legendCircleLeftY - 2 * scales.areaScales[areaSelected](d);
-        })
-        .text(d => d)
-        .style("font-size", 10)
-        .style("display", "block")
-        .attr("aligning-baseline", "middle")
-        .style("text-anchor", "end");
+    legendCircleLines[i][j] = d3
+      .select(this)
+      .append("g")
+      .selectAll("line")
+      .data(legendValuesToShow[i][j])
+      .join("line")
+      .attr("x1", () => {
+        if (j == 0) return legendCircleLeftX;
+        else if (j == 1) return legendCircleRightX;
+      })
+      .attr("x2", () => {
+        if (j == 0) return legendCircleLeftX - 50;
+        else if (j == 1) return legendCircleRightX + 50;
+      })
+      .attr("y1", d => legendCircleY - 2 * scales.areaScales[areaSelected](d))
+      .attr("y2", (d, idx) => {
+        if (idx % 2 == 1) {
+          return legendCircleY - 2 * scales.areaScales[areaSelected](d) - 15;
+        } else return legendCircleY - 2 * scales.areaScales[areaSelected](d);
+      })
+      .attr("stroke", "black")
+      .style("stroke-dasharray", "2,2");
 
-      legendColorBarScales[i][j] = d3
-        .legendColor()
-        .shapeWidth(20)
-        .cells(7)
-        .orient("vertical")
-        .scale(scales.colorScales[colorSelected]);
+    legendCircleLabels[i][j] = d3
+      .select(this)
+      .append("g")
+      .selectAll("text")
+      .data(legendValuesToShow[i][j])
+      .join("text")
+      .attr("x", () => {
+        if (j == 0) return legendCircleLeftX - 60;
+        else if (j == 1) return legendCircleRightX + 60;
+      })
+      .attr("y", (d, idx) => {
+        if (idx % 2 == 1) {
+          return legendCircleY - 2 * scales.areaScales[areaSelected](d) - 15;
+        } else return legendCircleY - 2 * scales.areaScales[areaSelected](d);
+      })
+      .text(d => d)
+      .style("font-size", 10)
+      .style("display", "block")
+      .attr("aligning-baseline", "middle")
+      .style("text-anchor", () => {
+        if (j == 0) return "end";
+        else if (j == 1) return "start";
+      });
 
-      legendColorTitle = d3
-        .select(this)
-        .append("text")
-        .attr("x", legendColorLeftX)
-        .attr("y", legendColorLeftY)
-        .attr("dy", "0.35em")
-        .text(colorSelected);
+    legendColorBarScales[i][j] = d3
+      .legendColor()
+      .shapeWidth(20)
+      .cells(7)
+      .orient("vertical")
+      .scale(scales.colorScales[colorSelected]);
 
-      legendColorBars[i][j] = d3
-        .select(this)
-        .append("g")
-        .attr(
-          "transform",
-          `translate(${legendColorLeftX}, ${legendColorLeftY + 20})`
-        );
+    legendColorTitle = d3
+      .select(this)
+      .append("text")
+      .attr("x", () => {
+        if (j == 0) return legendColorLeftX;
+        else if (j == 1) return legendColorRightX;
+      })
+      .attr("y", legendColorY)
+      .attr("dy", "0.35em")
+      .text(colorSelected);
 
-      legendColorBars[i][j].call(legendColorBarScales[i][j]);
-    } else if (j == 1) {
-      let legendColorRightY = 10;
-      let legendColorRightX = 100;
-      let legendCircleRightX = 270;
-      let legendCircleRightY = 150;
-      legendColorBarScales[i][j] = d3
-        .legendColor()
-        .shapeWidth(20)
-        .cells(7)
-        .orient("vertical")
-        .scale(scales.colorScales[colorSelected]);
+    legendColorBars[i][j] = d3
+      .select(this)
+      .append("g")
+      .attr("transform", () => {
+        if (j == 0)
+          return `translate(${legendColorLeftX}, ${legendColorY + 20})`;
+        else if (j == 1)
+          return `translate(${legendColorRightX}, ${legendColorY + 20})`;
+      });
 
-      legendColorTitle = d3
-        .select(this)
-        .append("text")
-        .attr("x", legendColorRightX)
-        .attr("y", legendColorRightY)
-        .attr("dy", "0.35em")
-        .text(colorSelected);
-
-      legendColorBars[i][j] = d3
-        .select(this)
-        .append("g")
-        .attr(
-          "transform",
-          `translate(${legendColorRightX}, ${legendColorRightY + 20})`
-        );
-
-      legendColorBars[i][j].call(legendColorBarScales[i][j]);
-
-      legendCircleTitles[i][j] = d3
-        .select(this)
-        .append("text")
-        .attr("x", legendCircleRightX)
-        .attr("y", 10)
-        .attr("text-anchor", "end")
-        .attr("dy", "0.35em")
-        .text(areaSelected);
-
-      legendCircles[i][j] = d3
-        .select(this)
-        .selectAll("circle")
-        .data(legendValuesToShow[i][j])
-        .join("circle")
-        .attr("cx", legendCircleRightX)
-        .attr(
-          "cy",
-          d => legendCircleRightY - scales.areaScales[areaSelected](d)
-        )
-        .attr("cyOriginal", d => {
-          return legendCircleRightY - scales.areaScales[areaSelected](d);
-        })
-        .attr("r", d => scales.areaScales[areaSelected](d))
-        .attr("rOriginal", d => scales.areaScales[areaSelected](d))
-        .attr("fill", "none")
-        .attr("stroke", "black");
-
-      legendCircleLines[i][j] = d3
-        .select(this)
-        .append("g")
-        .selectAll("line")
-        .data(legendValuesToShow[i][j])
-        .join("line")
-        .attr("x1", legendCircleRightX)
-        .attr("x2", legendCircleRightX + 50)
-        .attr(
-          "y1",
-          d => legendCircleRightY - 2 * scales.areaScales[areaSelected](d)
-        )
-        .attr("y2", (d, idx) => {
-          if (idx % 2 == 1) {
-            return (
-              legendCircleRightY - 2 * scales.areaScales[areaSelected](d) - 15
-            );
-          } else
-            return legendCircleRightY - 2 * scales.areaScales[areaSelected](d);
-        })
-        .attr("stroke", "black")
-        .style("stroke-dasharray", "2,2");
-
-      legendCircleLabels[i][j] = d3
-        .select(this)
-        .append("g")
-        .selectAll("text")
-        .data(legendValuesToShow[i][j])
-        .join("text")
-        .attr("x", legendCircleRightX + 60)
-        .attr("y", (d, idx) => {
-          if (idx % 2 == 1) {
-            return (
-              legendCircleRightY - 2 * scales.areaScales[areaSelected](d) - 15
-            );
-          } else
-            return legendCircleRightY - 2 * scales.areaScales[areaSelected](d);
-        })
-        .text(d => d)
-        .style("font-size", 10)
-        .style("display", "block")
-        .attr("aligning-baseline", "middle")
-        .style("text-anchor", "end");
-    }
+    legendColorBars[i][j].call(legendColorBarScales[i][j]);
   });
 
   function brush(cell, circle) {
