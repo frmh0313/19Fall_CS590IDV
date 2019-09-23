@@ -196,12 +196,6 @@ async function drawFunction() {
     .domain([0, 90])
     .range([dimensions.boundedHeight, 0]);
 
-  d3.select("#colorSelection")
-    .append("option")
-    .join("option")
-    .attr("value", "Country")
-    .text("Country");
-
   // setting default options
   d3.select("#ySelection")
     .selectAll("option")
@@ -266,6 +260,11 @@ async function drawFunction() {
     })
     .style("fill", d => {
       let colorSelected = d3.select("#colorSelection").property("value");
+      if (isNaN(d[colorSelected])) {
+        return "black";
+      } else {
+        return scales.colorScale(d[colorSelected]);
+      }
       return scales.colorScale(d[colorSelected]);
     })
     // .style("opacity", "0.7")
@@ -304,7 +303,7 @@ async function drawFunction() {
     .append("g")
     .append("svg")
     .attr("width", 300)
-    .attr("height", 500);
+    .attr("height", 550);
 
   legendCircleTitle = legend
     .append("text")
@@ -391,6 +390,21 @@ async function drawFunction() {
 
   legendColorBars.call(legendColorBarScale);
 
+  legendColorBars
+    .append("rect")
+    .attr("x", 0)
+    .attr("y", 180)
+    .attr("width", 45)
+    .attr("height", 15)
+    .attr("fill", "black");
+
+  legendColorBars
+    .append("text")
+    .attr("x", 55)
+    .attr("y", 180)
+    .text("N/A")
+    .attr("text-anchor", "start")
+    .attr("alignment-baseline", "hanging");
   // slider
   sliderDiv.append("label").text("Area Slider");
 
@@ -539,8 +553,6 @@ async function drawFunction() {
   d3.select("#areaSelection").on("change", function() {
     updateScale("areaScale", this.value);
   });
-
-  // options should be considered
 }
 
 function updateScale(scale, selectedOption) {
@@ -612,7 +624,6 @@ function updateScale(scale, selectedOption) {
       .duration(1000)
       .attr("cy", d => selectedScale(d[selectedOption]));
   } else if (scale == "areaScale") {
-    // should exclude negative values
     sliderInput.attr("value", null);
 
     sliderInput.attr("text", 100).property("value", 100);
@@ -646,8 +657,6 @@ function updateScale(scale, selectedOption) {
       .attr("cx", legendCircleX)
       .attr("cy", d => legendCircleY - scales.areaScale(d))
       .attr("r", d => scales.areaScale(d))
-      // .attr("cy", d => legendCircleY - selectedScale(d))
-      // .attr("r", d => selectedScale(d))
       .style("fill", "none")
       .style("stroke", "black");
 
@@ -686,8 +695,8 @@ function updateScale(scale, selectedOption) {
       selectedScale = d3
         .scaleSequential(d3.interpolateReds)
         .domain([
-          d3.max(dataSet.map(row => row[selectedOption])),
-          d3.min(dataSet.map(row => row[selectedOption]))
+          d3.min(dataSet.map(row => row[selectedOption])),
+          d3.max(dataSet.map(row => row[selectedOption]))
         ]);
     }
 
