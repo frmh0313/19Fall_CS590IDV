@@ -158,3 +158,36 @@ const continentCountry = {
   ],
   Oceania: ["New Zealand", "Australia"]
 };
+
+const higherTheMoreBetterOrDeveloped = [
+  "Area",
+  "Birth rate",
+  "Current account balance",
+  "Electricity consumption",
+  "Electricity production",
+  "Exports",
+  "GDP",
+  "GDP per capita",
+  "GDP real growth rate",
+  "Highways",
+  "Imports",
+  "Industrial production growth rate",
+  "Internet users",
+  "Investment",
+  "Labor force",
+  "Life expectancy at birth",
+  "Military expenditures",
+  "Natural gas consumption",
+  "Oil consumption",
+  "Population",
+  "Railways",
+  "Reserves of foreign exchange & gold",
+  "Total fertility rate"
+];
+const higherTheWorseOrUndeveloped = [
+  "Death rate",
+  "Infant mortality rate",
+  "Inflation rate",
+  "Public debt",
+  "Unemployment rate"
+];

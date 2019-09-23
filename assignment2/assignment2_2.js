@@ -33,7 +33,7 @@ let dimensions = {
     top: 50,
     right: 55,
     bottom: 50,
-    left: 100
+    left: 150
   }
 };
 
@@ -230,7 +230,7 @@ async function drawFunction() {
     .range([3, 50]);
 
   scales.colorScale = d3
-    .scaleSequential(d3.interpolateGreens)
+    .scaleSequential(d3.interpolateBlues)
     .domain([
       d3.min(
         dataSet.map(row => row[d3.select("#colorSelection").property("value")])
@@ -675,48 +675,37 @@ function updateScale(scale, selectedOption) {
       })
       .text(d => d);
   } else if (scale == "colorScale") {
-    if (selectedOption != "Continent") {
-      if (columnsWithNegative.has(selectedOption)) {
-        selectedScale = d3.scaleSequential(d3.interpolateRdBu).domain([
-          // -d3.max(dataSet.map(row => row[selectedOption])),
+    if (higherTheMoreBetterOrDeveloped.includes(selectedOption)) {
+      selectedScale = d3
+        .scaleSequential(d3.interpolateBlues)
+        .domain([
+          d3.min(dataSet.map(row => row[selectedOption])),
+          d3.max(dataSet.map(row => row[selectedOption]))
+        ]);
+    } else {
+      selectedScale = d3
+        .scaleSequential(d3.interpolateReds)
+        .domain([
           d3.max(dataSet.map(row => row[selectedOption])),
           d3.min(dataSet.map(row => row[selectedOption]))
         ]);
-      }
-
-      dots
-        .data(dataSet)
-        .transition()
-        .style("fill", d => selectedScale(d[selectedOption]))
-        .duration(1000);
-
-      legendColorTitle
-        .transition()
-        .duration(1000)
-        .text(selectedOption);
-
-      legendColorBars.call(legendColorBarScale.scale(selectedScale));
-    } else {
-      dots
-        .data(dataSet)
-        .transition()
-        .duration(1000)
-        .style("fill", d => continentColorScale(d[selectedOption]));
-
-      legendColorTitle
-        .transition()
-        .duration(1000)
-        .text(selectedOption);
-
-      legendColorBarScale = d3
-        .legendColor()
-        .shapeWidth(45)
-        .cells(6)
-        .orient("vertical")
-        .scale(continentColorScale);
-
-      legendColorBars.call(legendColorBarScale);
     }
+
+    if (selectedOption == "Continent") {
+      selectedScale = continentColorScale;
+    }
+    dots
+      .data(dataSet)
+      .transition()
+      .style("fill", d => selectedScale(d[selectedOption]))
+      .duration(1000);
+
+    legendColorTitle
+      .transition()
+      .duration(1000)
+      .text(selectedOption);
+
+    legendColorBars.call(legendColorBarScale.scale(selectedScale));
   }
 }
 

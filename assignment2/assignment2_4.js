@@ -565,10 +565,12 @@ async function drawChart() {
       .html(
         `
   <p>Country: ${d.Country}</p>
-  <p>${xSelected}: ${formatters[xSelected](d[xSelected])}</p>
-  <p>${ySelected}: ${formatters[ySelected](d[ySelected])}</p>
-  <p>${areaSelected}: ${formatters[areaSelected](d[areaSelected])}</p>
-  <p>${colorSelected}: ${formatters[colorSelected](d[colorSelected])}</p>`
+  <p>[X] ${xSelected}: ${formatters[xSelected](d[xSelected])}</p>
+  <p>[Y] ${ySelected}: ${formatters[ySelected](d[ySelected])}</p>
+  <p>[Area] ${areaSelected}: ${formatters[areaSelected](d[areaSelected])}</p>
+  <p>[Color] ${colorSelected}: ${formatters[colorSelected](
+          d[colorSelected]
+        )}</p>`
       )
       .style("position", "absolute")
       .style("left", `${d3.event.pageX + 70}px`)

@@ -47,8 +47,6 @@ dimensions.size =
     2 +
   dimensions.padding;
 
-// TODO
-// 3. custom color scale? Too much work
 async function drawChart() {
   dataSet = await d3
     .csv("./factbook.csv")
@@ -493,19 +491,19 @@ async function drawChart() {
     // color scales
     columns.forEach(c => {
       let colorScale;
-      if (columnsWithNegative.has(c)) {
+      if (higherTheMoreBetterOrDeveloped.includes(c)) {
         colorScale = d3
-          .scaleSequential(d3.interpolateRdBu)
+          .scaleSequential(d3.interpolateBlues)
           .domain([
             d3.min(dataSet.map(row => row[c])),
             d3.max(dataSet.map(row => row[c]))
           ]);
       } else {
         colorScale = d3
-          .scaleSequential(d3.interpolateBlues)
+          .scaleSequential(d3.interpolateReds)
           .domain([
-            d3.min(dataSet.map(row => row[c])),
-            d3.max(dataSet.map(row => row[c]))
+            d3.max(dataSet.map(row => row[c])),
+            d3.min(dataSet.map(row => row[c]))
           ]);
       }
 
@@ -674,7 +672,7 @@ async function drawChart() {
         if (j == 0) return legendCircleLeftX;
         else if (j == 1) return legendCircleRightX;
       })
-      .attr("y", 10)
+      .attr("y", 30)
       .attr("dy", "0.35em")
       // .style("text-anchor", () => {
       //   if (j == 0) return "end";
@@ -988,17 +986,17 @@ function update(scale, selectedOption, xIndex, yIndex) {
     xAxes[xIndex][yIndex].call(xAxisGenerators[xIndex][yIndex]);
     yAxes[xIndex][yIndex].call(yAxisGenerators[xIndex][yIndex]);
   } else if (scale == "colorScale") {
-    if (
-      columnsWithNegative.has(selectedOption) &&
-      selectedOption != "Continent"
-    ) {
-      selectedScale = d3
-        .scaleSequential(d3.interpolateRdBu)
-        .domain([
-          d3.max(dataSet.map(row => row[selectedOption])),
-          d3.min(dataSet.map(row => row[selectedOption]))
-        ]);
-    }
+    // if (
+    //   columnsWithNegative.has(selectedOption) &&
+    //   selectedOption != "Continent"
+    // ) {
+    //   selectedScale = d3
+    //     .scaleSequential(d3.interpolateRdBu)
+    //     .domain([
+    //       d3.max(dataSet.map(row => row[selectedOption])),
+    //       d3.min(dataSet.map(row => row[selectedOption]))
+    //     ]);
+    // }
 
     dots[xIndex][yIndex]
       .data(dataSet)
