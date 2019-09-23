@@ -15,175 +15,28 @@ let [slider, sliderGenerator, sliderInput] = [];
 
 let scales = { xScales: {}, yScales: {}, colorScales: {}, areaScales: {} };
 
+let legends = [[], []];
+let legendValuesToShow = [[], []];
+
+let legendCircles = [[], []];
+let legendCircleTitles = [[], []];
+let legendCircleLines = [[], []];
+let legendCircleLabels = [[], []];
+
+let legendColors = [[], []];
+let legendColorTitles = [[], []];
+let legendColorBars = [[], []];
+let legendColorBarScales = [[], []];
+
 let cellHandlers;
 // let brush;
 let circle;
 let dimensions = {
-  width: 1540,
-  handler: 250,
-  padding: 40
+  width: 1560,
+  handler: 220,
+  padding: 90
 };
 
-let continentCountry = {
-  Asia: [
-    "Japan",
-    "Saudi Arabia",
-    "China",
-    "Korea South",
-    "Taiwan",
-    "Hong Kong",
-    "Kuwait",
-    "Malaysia",
-    "Singapore",
-    "Indonesia",
-    "Thailand",
-    "United Arab Emirates",
-    "Qatar",
-    "India",
-    "Philippines",
-    "Oman",
-    "Iran",
-    "Pakistan",
-    "Syria",
-    "Bahrain",
-    "Uzbekistan",
-    "Yemen",
-    "Bangladesh",
-    "Israel",
-    "Jordan",
-    "Turkmenistan",
-    "Papua New Guinea",
-    "Kazakhstan",
-    "Tajikistan",
-    "Laos",
-    "Kyrgyzstan",
-    "Burma",
-    "Armenia",
-    "Cambodia",
-    "Iraq",
-    "Sri Lanka",
-    "Georgia",
-    "Vietnam",
-    "Lebanon",
-    "Azerbaijan",
-    "Turkey"
-  ],
-  "North America": [
-    "Canada",
-    "Haiti",
-    "Cuba",
-    "Panama",
-    "Jamaica",
-    "El Salvador",
-    "Costa Rica",
-    "Guatemala",
-    "United States",
-    "Belize"
-  ],
-  "South America": [
-    "Venezuela",
-    "Brazil",
-    "Argentina",
-    "Chile",
-    "Trinidad and Tobago",
-    "Dominican Republic",
-    "Bolivia",
-    "Ecuador",
-    "Honduras",
-    "Peru",
-    "Paraguay",
-    "Guyana",
-    "Nicaragua",
-    "Colombia",
-    "Mexico",
-    "Uruguay"
-  ],
-  Europe: [
-    "Germany",
-    "Russia",
-    "Switzerland",
-    "Norway",
-    "Sweden",
-    "Netherlands",
-    "Belgium",
-    "Finland",
-    "Denmark",
-    "Ukraine",
-    "Bulgaria",
-    "Slovenia",
-    "Moldova",
-    "Malta",
-    "France",
-    "Macedonia",
-    "Albania",
-    "Iceland",
-    "Cyprus",
-    "Belarus",
-    "Estonia",
-    "Latvia",
-    "Slovakia",
-    "Lithuania",
-    "Croatia",
-    "Bosnia and Herzegovina",
-    "Ireland",
-    "Serbia and Montenegro",
-    "Austria",
-    "Romania",
-    "Poland",
-    "Czech Republic",
-    "Hungary",
-    "Greece",
-    "Portugal",
-    "Italy",
-    "Spain",
-    "United Kingdom"
-  ],
-  Africa: [
-    "Algeria",
-    "Libya",
-    "Nigeria",
-    "Egypt",
-    "Morocco",
-    "Botswana",
-    "Chad",
-    "Mauritius",
-    "Congo Republic of the",
-    "Namibia",
-    "Gabon",
-    "Ghana",
-    "Tunisia",
-    "Gambia The",
-    "Sao Tome and Principe",
-    "Angola",
-    "Malawi",
-    "Burundi",
-    "Swaziland",
-    "Cape Verde",
-    "Seychelles",
-    "Mozambique",
-    "Lesotho",
-    "Togo",
-    "Eritrea",
-    "Cameroon",
-    "Benin",
-    "Zambia",
-    "Rwanda",
-    "Zimbabwe",
-    "Madagascar",
-    "Guinea",
-    "Tanzania",
-    "Cote d'Ivoire",
-    "Kenya",
-    "Ethiopia",
-    "Burkina Faso",
-    "Senegal",
-    "Equatorial Guinea",
-    "Uganda",
-    "Sudan",
-    "South Africa"
-  ],
-  Oceania: ["New Zealand", "Australia"]
-};
 dimensions.size =
   (dimensions.width -
     2 * dimensions.handler -
@@ -193,10 +46,8 @@ dimensions.size =
   dimensions.padding;
 
 // TODO
-// 1. add legends
-// 2. Color scale - columnsWithNegative - map the point zero to the middle
-// 3. add grid lines
-
+// 2. add legends and its transition
+// 3. Color scale - columnsWithNegative - map the point zero to the middle
 async function drawChart() {
   dataSet = await d3
     .csv("./factbook.csv")
@@ -219,6 +70,9 @@ async function drawChart() {
           .filter(column => column != "Country")
           .forEach(key => {
             if (row[key].startsWith("$")) {
+              if (key == "Current account balance") {
+                row[key] = row[key].replace(/[()]/g, "");
+              }
               row[key] = +row[key]
                 .substr(1)
                 .split(",")
@@ -298,22 +152,48 @@ async function drawChart() {
     .style("position", "absolute")
     .each(function([i, j]) {
       if (j == 0) {
-        d3.select(this)
-          .style("top", `${i * dimensions.size + 10}px`)
-          .style("left", `${dimensions.padding}px`)
-          .style("width", "260px")
-          .style("float", "left");
+        if (i == 0) {
+          d3.select(this)
+            .style("top", `10px`)
+            .style("left", `${dimensions.padding}px`)
+            .style("width", "260px")
+            .style("float", "left");
+        } else if (i == 1) {
+          d3.select(this)
+            .style("top", `${i * dimensions.size + 30}px`)
+            .style("left", `${dimensions.padding}px`)
+            .style("width", "260px")
+            .style("float", "left");
+        }
       } else if (j == 1) {
-        d3.select(this)
-          .style("top", `${i * dimensions.size + 10}px`)
-          .style("right", `${dimensions.padding}px`)
-          .style("width", " 260px")
-          .style("float", "right");
+        if (i == 0) {
+          d3.select(this)
+            .style("top", `10px`)
+            .style(
+              "left",
+              `${dimensions.padding * 2 +
+                dimensions.handler +
+                2 * dimensions.size}px`
+            )
+            .style("width", " 260px")
+            .style("float", "left");
+        } else if (i == 1) {
+          d3.select(this)
+            .style("top", `${i * dimensions.size + 30}px`)
+            .style(
+              "left",
+              `${dimensions.padding * 2 +
+                dimensions.handler +
+                2 * dimensions.size}px`
+            )
+            .style("width", " 260px")
+            .style("float", "left");
+        }
       }
 
-      d3.select(this)
-        .append("h1")
-        .text(`[i: ${i}, j: ${j}]`);
+      // d3.select(this)
+      //   .append("h1")
+      //   .text(`[i: ${i}, j: ${j}]`);
 
       if (j == 0) {
         d3.select(this)
@@ -336,10 +216,10 @@ async function drawChart() {
       }
     })
     .selectAll(".cellHandlers");
+  const selections = cellHandlers.append("div");
+  const yLabels = selections.append("label").text("yAxis");
 
-  const yLabels = cellHandlers.append("label").text("yAxis");
-
-  const ySelections = cellHandlers
+  const ySelections = selections
     .append("select")
     .attr("class", "ySelections")
     .attr("id", ([i, j]) => `ySelection${i}${j}`)
@@ -350,9 +230,9 @@ async function drawChart() {
     .attr("value", d => d)
     .text(d => d);
 
-  const xLabels = cellHandlers.append("label").text("xAxis");
+  const xLabels = selections.append("label").text("xAxis");
 
-  const xSelections = cellHandlers
+  const xSelections = selections
     .append("select")
     .attr("class", "xSelections")
     .attr("id", ([i, j]) => `xSelection${i}${j}`)
@@ -363,22 +243,27 @@ async function drawChart() {
     .attr("value", d => d)
     .text(d => d);
 
-  const areaLabels = cellHandlers.append("label").text("Area");
+  const areaLabels = selections.append("label").text("Area");
 
-  const areaSelections = cellHandlers
+  const areaSelections = selections
     .append("select") // maybe should exclude columns with negative values
     .attr("class", "areaSelections")
     .attr("id", ([i, j]) => `areaSelection${i}${j}`)
     .selectAll("option")
     .append("option")
-    .data(columns.filter(c => !columnsWithNegative.has(c)))
+    .data(
+      columns.filter(
+        c =>
+          !columnsWithNegative.has(c) && !(c == "Country" || c == "Continent")
+      )
+    )
     .join("option")
     .attr("value", d => d)
     .text(d => d);
 
-  const colorLabels = cellHandlers.append("label").text("Color");
+  const colorLabels = selections.append("label").text("Color");
 
-  const colorSelections = cellHandlers
+  const colorSelections = selections
     .append("select")
     .attr("class", "colorSelections")
     .attr("id", ([i, j]) => `colorSelection${i}${j}`)
@@ -523,7 +408,10 @@ async function drawChart() {
       } else {
         colorScale = d3
           .scaleSequential(d3.interpolateBlues)
-          .domain([d3.max(dataSet.map(row => row[c])), 0]);
+          .domain([
+            d3.min(dataSet.map(row => row[c])),
+            d3.max(dataSet.map(row => row[c]))
+          ]);
       }
 
       scales.colorScales[c] = colorScale;
@@ -542,7 +430,7 @@ async function drawChart() {
         areaScale = d3
           .scaleLinear()
           .domain([0, d3.max(dataSet.map(row => row[c]))])
-          .range([3, 50]);
+          .range([2, 30]);
         scales.areaScales[c] = areaScale;
       });
   });
@@ -606,16 +494,16 @@ async function drawChart() {
         `translate(0, ${dimensions.size - dimensions.padding / 2})`
       );
 
-    const xLabel = xAxis
+    const xAxisLabel = xAxis
       .append("text")
       .attr("x", dimensions.size / 2)
-      .attr("y", dimensions.padding - 5)
+      .attr("y", 40)
       .attr("fill", "black")
       .attr("font-size", "1.4em")
       .text(d3.select(`#xSelection${i}${j}`).property("value"));
 
     xAxes[i][j] = xAxis;
-    xAxesLabels[i][j] = xLabel;
+    xAxesLabels[i][j] = xAxisLabel;
 
     const yAxisGenerator = d3
       .axisLeft(
@@ -632,21 +520,245 @@ async function drawChart() {
           dimensions.size})`
       );
 
-    const yLabel = yAxis
+    const yAxisLabel = yAxis
       .append("text")
-      .attr("x", -dimensions.size / 2)
-      .attr("y", (-dimensions.padding * 2) / 3)
+      // .attr("x", -dimensions.size / 2)
+      // .attr("y", (-dimensions.padding * 2) / 3)
+      .attr("x", 50)
+      .attr("y", dimensions.padding - 60)
       .attr("fill", "black")
       .text(d3.select(`#ySelection${i}${j}`).property("value"))
       .style("font-size", "1.4em")
-      .style("transform", "rotate(-90deg)")
       .style("text-anchor", "middle");
 
     yAxes[i][j] = yAxis;
-    yAxesLabels[i][j] = yLabel;
+    yAxesLabels[i][j] = yAxisLabel;
   });
 
   circle = cell.selectAll("circle");
+
+  legend = cellHandlers
+    .append("g")
+    .append("svg")
+    .attr("width", 500)
+    .attr("height", 200)
+    .attr("transform", `translate(-100, 0)`);
+
+  legend.each(function([i, j]) {
+    let selected = d3.select(`#areaSelection${i}${j}`).property("value");
+    let selectedData = dataSet.map(row => row[selected]);
+    let format = d3.format(".2f");
+    legendValuesToShow[i][j] = [
+      format(d3.min(selectedData)),
+      format(d3.mean(selectedData)),
+      format(d3.max(selectedData))
+    ];
+  });
+
+  legend.each(function([i, j]) {
+    let areaSelected = d3.select(`#areaSelection${i}${j}`).property("value");
+    let colorSelected = d3.select(`#colorSelection${i}${j}`).property("value");
+
+    if (j == 0) {
+      let legendCircleLeftX = 150;
+      let legendCircleLeftY = 150;
+      let legendColorLeftY = 10;
+      let legendColorLeftX = 250;
+      legendCircleTitles[i][j] = d3
+        .select(this)
+        .append("text")
+        .attr("x", legendCircleLeftX)
+        .attr("y", 10)
+        .attr("text-anchor", "end")
+        .attr("dy", "0.35em")
+        .text(areaSelected);
+
+      legendCircles[i][j] = d3
+        .select(this)
+        .selectAll("circle")
+        .data(legendValuesToShow[i][j])
+        .join("circle")
+        .attr("cx", legendCircleLeftX)
+        .attr("cy", d => legendCircleLeftY - scales.areaScales[areaSelected](d))
+        .attr("cyOriginal", d => {
+          return legendCircleLeftY - scales.areaScales[areaSelected](d);
+        })
+        .attr("r", d => scales.areaScales[areaSelected](d))
+        .attr("rOriginal", d => scales.areaScales[areaSelected](d))
+        .attr("fill", "none")
+        .attr("stroke", "black");
+
+      legendCircleLines[i][j] = d3
+        .select(this)
+        .append("g")
+        .selectAll("line")
+        .data(legendValuesToShow[i][j])
+        .join("line")
+        .attr("x1", legendCircleLeftX)
+        .attr("x2", legendCircleLeftX - 50)
+        .attr(
+          "y1",
+          d => legendCircleLeftY - 2 * scales.areaScales[areaSelected](d)
+        )
+        .attr("y2", (d, idx) => {
+          if (idx % 2 == 1) {
+            return (
+              legendCircleLeftY - 2 * scales.areaScales[areaSelected](d) - 15
+            );
+          } else
+            return legendCircleLeftY - 2 * scales.areaScales[areaSelected](d);
+        })
+        .attr("stroke", "black")
+        .style("stroke-dasharray", "2,2");
+
+      legendCircleLabels[i][j] = d3
+        .select(this)
+        .append("g")
+        .selectAll("text")
+        .data(legendValuesToShow[i][j])
+        .join("text")
+        .attr("x", legendCircleLeftX - 60)
+        .attr("y", (d, idx) => {
+          if (idx % 2 == 1) {
+            return (
+              legendCircleLeftY - 2 * scales.areaScales[areaSelected](d) - 15
+            );
+          } else
+            return legendCircleLeftY - 2 * scales.areaScales[areaSelected](d);
+        })
+        .text(d => d)
+        .style("font-size", 10)
+        .style("display", "block")
+        .attr("aligning-baseline", "middle")
+        .style("text-anchor", "end");
+
+      legendColorBarScales[i][j] = d3
+        .legendColor()
+        .shapeWidth(20)
+        .cells(7)
+        .orient("vertical")
+        .scale(scales.colorScales[colorSelected]);
+
+      legendColorTitle = d3
+        .select(this)
+        .append("text")
+        .attr("x", legendColorLeftX)
+        .attr("y", legendColorLeftY)
+        .attr("dy", "0.35em")
+        .text(colorSelected);
+
+      legendColorBars[i][j] = d3
+        .select(this)
+        .append("g")
+        .attr(
+          "transform",
+          `translate(${legendColorLeftX}, ${legendColorLeftY + 20})`
+        );
+
+      legendColorBars[i][j].call(legendColorBarScales[i][j]);
+    } else if (j == 1) {
+      let legendColorRightY = 10;
+      let legendColorRightX = 100;
+      let legendCircleRightX = 270;
+      let legendCircleRightY = 150;
+      legendColorBarScales[i][j] = d3
+        .legendColor()
+        .shapeWidth(20)
+        .cells(7)
+        .orient("vertical")
+        .scale(scales.colorScales[colorSelected]);
+
+      legendColorTitle = d3
+        .select(this)
+        .append("text")
+        .attr("x", legendColorRightX)
+        .attr("y", legendColorRightY)
+        .attr("dy", "0.35em")
+        .text(colorSelected);
+
+      legendColorBars[i][j] = d3
+        .select(this)
+        .append("g")
+        .attr(
+          "transform",
+          `translate(${legendColorRightX}, ${legendColorRightY + 20})`
+        );
+
+      legendColorBars[i][j].call(legendColorBarScales[i][j]);
+
+      legendCircleTitles[i][j] = d3
+        .select(this)
+        .append("text")
+        .attr("x", legendCircleRightX)
+        .attr("y", 10)
+        .attr("text-anchor", "end")
+        .attr("dy", "0.35em")
+        .text(areaSelected);
+
+      legendCircles[i][j] = d3
+        .select(this)
+        .selectAll("circle")
+        .data(legendValuesToShow[i][j])
+        .join("circle")
+        .attr("cx", legendCircleRightX)
+        .attr(
+          "cy",
+          d => legendCircleRightY - scales.areaScales[areaSelected](d)
+        )
+        .attr("cyOriginal", d => {
+          return legendCircleRightY - scales.areaScales[areaSelected](d);
+        })
+        .attr("r", d => scales.areaScales[areaSelected](d))
+        .attr("rOriginal", d => scales.areaScales[areaSelected](d))
+        .attr("fill", "none")
+        .attr("stroke", "black");
+
+      legendCircleLines[i][j] = d3
+        .select(this)
+        .append("g")
+        .selectAll("line")
+        .data(legendValuesToShow[i][j])
+        .join("line")
+        .attr("x1", legendCircleRightX)
+        .attr("x2", legendCircleRightX + 50)
+        .attr(
+          "y1",
+          d => legendCircleRightY - 2 * scales.areaScales[areaSelected](d)
+        )
+        .attr("y2", (d, idx) => {
+          if (idx % 2 == 1) {
+            return (
+              legendCircleRightY - 2 * scales.areaScales[areaSelected](d) - 15
+            );
+          } else
+            return legendCircleRightY - 2 * scales.areaScales[areaSelected](d);
+        })
+        .attr("stroke", "black")
+        .style("stroke-dasharray", "2,2");
+
+      legendCircleLabels[i][j] = d3
+        .select(this)
+        .append("g")
+        .selectAll("text")
+        .data(legendValuesToShow[i][j])
+        .join("text")
+        .attr("x", legendCircleRightX + 60)
+        .attr("y", (d, idx) => {
+          if (idx % 2 == 1) {
+            return (
+              legendCircleRightY - 2 * scales.areaScales[areaSelected](d) - 15
+            );
+          } else
+            return legendCircleRightY - 2 * scales.areaScales[areaSelected](d);
+        })
+        .text(d => d)
+        .style("font-size", 10)
+        .style("display", "block")
+        .attr("aligning-baseline", "middle")
+        .style("text-anchor", "end");
+    }
+  });
+
   function brush(cell, circle) {
     const brush = d3
       .brush()
@@ -745,14 +857,29 @@ function update(scale, selectedOption, xIndex, yIndex) {
       .transition()
       .duration(1000)
       .attr("cx", d => selectedScale(d[selectedOption]));
+
+    let longNumbers = [
+      "Current account balance",
+      "Electricity consumption",
+      "Electricity production",
+      "Exports",
+      "GDP",
+      "Natural gas consumption",
+      "Population",
+      "Reserves of foreign exchange & gold"
+    ];
+
     let xAxisGenerator = d3.axisBottom(selectedScale);
+    if (longNumbers.includes(selectedOption)) {
+      xAxisGenerator.ticks(2);
+    }
 
     xAxes[yIndex][xIndex]
       .transition()
       .duration(1000)
       .call(xAxisGenerator);
 
-    xAxesLabels[xIndex][yIndex]
+    xAxesLabels[yIndex][xIndex]
       .transition()
       .duration(1000)
       .text(selectedOption);
@@ -774,7 +901,7 @@ function update(scale, selectedOption, xIndex, yIndex) {
       .duration(1000)
       .text(selectedOption);
   } else if (scale == "areaScale") {
-    selectedScale.range([0, 50]);
+    selectedScale.range([2, 30]);
 
     dots[xIndex][yIndex]
       .data(dataSet)
