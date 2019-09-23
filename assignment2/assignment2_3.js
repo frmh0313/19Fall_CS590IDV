@@ -45,8 +45,7 @@ dimensions.size =
   dimensions.padding;
 
 // TODO
-// 2. add legends and its transition
-// 3. Color scale - columnsWithNegative - map the point zero to the middle
+// 3. custom color scale? Too much work
 async function drawChart() {
   dataSet = await d3
     .csv("./factbook.csv")
@@ -470,8 +469,8 @@ async function drawChart() {
         colorScale = d3
           .scaleSequential(d3.interpolateRdBu)
           .domain([
-            d3.max(dataSet.map(row => row[c])),
-            d3.min(dataSet.map(row => row[c]))
+            d3.min(dataSet.map(row => row[c])),
+            d3.max(dataSet.map(row => row[c]))
           ]);
       } else {
         colorScale = d3
@@ -498,7 +497,7 @@ async function drawChart() {
         areaScale = d3
           .scaleLinear()
           .domain([0, d3.max(dataSet.map(row => row[c]))])
-          .range([2, 30]);
+          .range([2, 40]);
         scales.areaScales[c] = areaScale;
       });
   });
@@ -543,8 +542,8 @@ async function drawChart() {
           .property("value");
         return scales.colorScales[colorSelected](d[colorSelected]);
       })
-      .attr("stroke", "black")
-      .attr("opacity", 0.7);
+      .attr("stroke", "black");
+    // .attr("opacity", 0.7);
 
     // axes
     const xAxisGenerator = d3
@@ -605,6 +604,12 @@ async function drawChart() {
 
   circle = cell.selectAll("circle");
 
+  let continentColorScale = d3
+    .scaleOrdinal(d3.schemeSet1)
+    .domain(Object.keys(continentCountry));
+
+  scales.colorScales["Continent"] = continentColorScale;
+
   legend = cellHandlers
     .append("g")
     .append("svg")
@@ -632,7 +637,7 @@ async function drawChart() {
     legendCircleLeftX = 150;
     legendColorLeftX = 250;
     legendColorRightX = 100;
-    legendCircleRightX = 270;
+    legendCircleRightX = 300;
 
     legendCircleTitles[i][j] = d3
       .select(this)
@@ -642,12 +647,12 @@ async function drawChart() {
         else if (j == 1) return legendCircleRightX;
       })
       .attr("y", 10)
-      .attr("text-anchor", "end")
       .attr("dy", "0.35em")
-      .style("text-anchor", () => {
-        if (j == 0) return "end";
-        else if (j == 1) return "start";
-      })
+      // .style("text-anchor", () => {
+      //   if (j == 0) return "end";
+      //   else if (j == 1) return "start";
+      // })
+      .style("text-anchor", "middle")
       .text(areaSelected);
 
     legendCircles[i][j] = d3
@@ -888,7 +893,7 @@ function update(scale, selectedOption, xIndex, yIndex) {
       .duration(1000)
       .text(selectedOption);
   } else if (scale == "areaScale") {
-    selectedScale.range([2, 30]);
+    selectedScale.range([2, 40]);
     sliderInput.attr("value", null);
     sliderInput.attr("text", 100).property("value", 100);
     sliderGenerator.silentValue(1);
@@ -963,13 +968,21 @@ function update(scale, selectedOption, xIndex, yIndex) {
       .data(dataSet)
       .transition()
       .duration(1000)
-      .style("fill", d => {
-        if (selectedOption != "Continent") {
-          return selectedScale(d[selectedOption]);
-        } else {
-          return continentColorScale(d[selectedOption]);
-        }
-      });
+      .style("fill", d => selectedScale(d[selectedOption]));
+
+    legendColorTitles[xIndex][yIndex]
+      .transition()
+      .duration(1000)
+      .text(selectedOption);
+
+    legendColorBarScales[xIndex][yIndex] = d3
+      .legendColor()
+      .shapeWidth(20)
+      .cells(7)
+      .orient("vertical")
+      .scale(selectedScale);
+
+    legendColorBars[xIndex][yIndex].call(legendColorBarScales[xIndex][yIndex]);
   }
 }
 
