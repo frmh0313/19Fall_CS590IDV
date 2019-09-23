@@ -18,14 +18,28 @@ let [slider, sliderGenerator, sliderInput] = [];
 let scales = { xScales: {}, yScales: {}, colorScales: {}, areaScales: {} };
 
 let cellHandlers;
-// let brush;
 let circle;
 let dimensions = {
-  width: 1540,
-  handler: 250,
-  padding: 40
+  width: 1560,
+  handler: 220,
+  padding: 90
 };
 
+let formatters = {};
+
+let legends = [[], []];
+let legendValuesToShow = [[], []];
+
+let legendCircles = [[], []];
+let legendCircleTitles = [[], []];
+let legendCircleLines = [[], []];
+let legendCircleLabels = [[], []];
+let legendCircleY;
+let legendColorY;
+let legendColors = [[], []];
+let legendColorTitles = [[], []];
+let legendColorBars = [[], []];
+let legendColorBarScales = [[], []];
 dimensions.size =
   (dimensions.width -
     2 * dimensions.handler -
@@ -35,10 +49,7 @@ dimensions.size =
   dimensions.padding;
 
 // TODO
-// 1. add legends
 // 2. Color scale - columnsWithNegative - map the point zero to the middle
-// 3. add grid lines
-
 async function drawChart() {
   dataSet = await d3
     .csv("./factbook.csv")
@@ -55,7 +66,21 @@ async function drawChart() {
     )
     .then(data => {
       columns = Object.keys(data[0]);
+      columns
+        .filter(c => c != "Country")
+        .forEach(c => {
+          console.log(data[0][c]);
 
+          if (data[0][c].startsWith("$")) {
+            formatters[c] = d3.format("$,.2f");
+          } else if (+data[0][c].split(",").join("") % 1 == 0) {
+            formatters[c] = d3.format(",.2r");
+          } else {
+            formatters[c] = d3.format(",.2f");
+          }
+        });
+      formatters["Country"] = d3.format("c");
+      formatters["Continent"] = d3.format("c");
       return data.map(row => {
         columns
           .filter(column => column != "Country")
@@ -79,6 +104,19 @@ async function drawChart() {
             }
           });
         return row;
+      });
+    })
+    .then(data => {
+      columns.push("Continent");
+      columns.sort();
+      return data.map(row => {
+        for ([continent, countryArr] of Object.entries(continentCountry)) {
+          if (countryArr.includes(row.Country)) {
+            row.Continent = continent;
+            console.log("row: ", row);
+            return row;
+          }
+        }
       });
     });
 
@@ -129,99 +167,90 @@ async function drawChart() {
     .join("div")
     .style("position", "absolute")
     .each(function([i, j]) {
-      if (j == 0) {
-        d3.select(this)
-          .style("top", `${i * dimensions.size + 10}px`)
-          .style("left", `${dimensions.padding / 2}px`)
-          .style("width", "260px")
-          .style("float", "left");
-      } else if (j == 1) {
-        d3.select(this)
-          .style("top", `${i * dimensions.size + 10}px`)
-          .style(
-            "left",
-            `${dimensions.padding * 2 +
+      d3.select(this)
+        .style("top", () => {
+          if (i == 0) return "10px";
+          else if (i == 1) return `${dimensions.size + 30}px`;
+        })
+        .style("left", () => {
+          if (j == 0) return `${dimensions.padding}px`;
+          else if (j == 1)
+            return `${dimensions.padding * 2 +
               dimensions.handler +
-              2 * dimensions.size}px`
-          )
-          .style("width", " 260px")
-          .style("float", "left");
-      }
+              2 * dimensions.size}px`;
+        })
+        .style("width", "260px")
+        .style("float", "left");
 
       d3.select(this)
-        .append("h1")
-        .text(`[i: ${i}, j: ${j}]`);
-
-      if (j == 0) {
-        d3.select(this)
-          .append("div")
-          .attr("class", "cellHandlers")
-          .attr("id", `cellHandler${i}${j}`)
-          .style("float", "left")
-          .style("padding-left", "10px")
-          .style("padding-top", "10px")
-          .style("width", "250px");
-      } else if (j == 1) {
-        d3.select(this)
-          .append("div")
-          .attr("class", "cellHandlers")
-          .attr("id", `cellHandler${i}${j}`)
-          .style("padding-left", "10px")
-          .style("padding-top", "10px")
-          .style("float", "right")
-          .style("width", "250px");
-      }
+        .append("div")
+        .attr("class", "cellHandlers")
+        .attr("id", `cellHandler${i}${j}`)
+        .style("float", () => {
+          if (j == 0) return "left";
+          else if (j == 1) return "right";
+        })
+        .style("padding-left", "10px")
+        .style("padding-top", "10px")
+        .style("width", "250px");
     })
     .selectAll(".cellHandlers");
 
-  const yLabels = cellHandlers.append("label").text("yAxis");
+  const selections = cellHandlers.append("div");
 
-  const ySelections = cellHandlers
+  const ySelectionLabels = selections.append("label").text("yAxis");
+
+  const ySelections = selections
     .append("select")
     .attr("class", "ySelections")
     .attr("id", ([i, j]) => `ySelection${i}${j}`)
     .selectAll("option")
     .append("option")
-    .data(columns.filter(c => c != "Country"))
+    .data(columns.filter(c => c != "Country" && c != "Continent"))
     .join("option")
     .attr("value", d => d)
     .text(d => d);
 
-  const xLabels = cellHandlers.append("label").text("xAxis");
+  const xSelectionLabels = selections.append("label").text("xAxis");
 
-  const xSelections = cellHandlers
+  const xSelections = selections
     .append("select")
     .attr("class", "xSelections")
     .attr("id", ([i, j]) => `xSelection${i}${j}`)
     .selectAll("option")
     .append("option")
-    .data(columns.filter(c => c != "Country"))
+    .data(columns.filter(c => c != "Country" && c != "Continent"))
     .join("option")
     .attr("value", d => d)
     .text(d => d);
 
-  const areaLabels = cellHandlers.append("label").text("Area");
+  const areaLabels = selections.append("label").text("Area");
 
-  const areaSelections = cellHandlers
+  const areaSelections = selections
     .append("select") // maybe should exclude columns with negative values
     .attr("class", "areaSelections")
     .attr("id", ([i, j]) => `areaSelection${i}${j}`)
     .selectAll("option")
     .append("option")
-    .data(columns.filter(c => !columnsWithNegative.has(c)))
+    .data(
+      columns.filter(
+        c =>
+          !columnsWithNegative.has(c) && !(c == "Country" || c == "Continent")
+      )
+    )
     .join("option")
     .attr("value", d => d)
     .text(d => d);
 
-  const colorLabels = cellHandlers.append("label").text("Color");
+  const colorLabels = selections.append("label").text("Color");
 
-  const colorSelections = cellHandlers
+  const colorSelections = selections
     .append("select")
     .attr("class", "colorSelections")
     .attr("id", ([i, j]) => `colorSelection${i}${j}`)
     .selectAll("option")
     .append("option")
-    .data(columns)
+    .data(columns.filter(c => c !== "Country"))
     .join("option")
     .attr("value", d => d)
     .text(d => d);
@@ -255,7 +284,7 @@ async function drawChart() {
 
     slider.append("label").text("Area Slider");
 
-    let sliderInput = slider
+    sliderInput = slider
       .append("input")
       .attr("class", "value-simples")
       .attr("id", `value-simple${i}${j}`)
@@ -264,7 +293,7 @@ async function drawChart() {
 
     slider.append("label").text("%");
 
-    let sliderGenerator = d3
+    sliderGenerator = d3
       .sliderBottom()
       .min(0)
       .max(3)
@@ -292,6 +321,58 @@ async function drawChart() {
           .attr("r", function() {
             return d3.select(this).attr("rOriginal") * val;
           });
+
+        let areaSelected = d3
+          .select(`#areaSelection${i}${j}`)
+          .property("value");
+        legendCircles[i][j]
+          .transition()
+          .duration(1000)
+          .attr(
+            "cy",
+            d => legendCircleY - scales.areaScales[areaSelected](d) * val
+          )
+          .attr("r", d => scales.areaScales[areaSelected](d) * val);
+
+        legendCircleLines[i][j]
+          .transition()
+          .duration(1000)
+          .attr(
+            "y1",
+            d => legendCircleY - 2 * scales.areaScales[areaSelected](d) * val
+          )
+          .attr("y2", (d, i) => {
+            if (i % 2 == 1) {
+              return (
+                legendCircleY -
+                10 -
+                2 * scales.areaScales[areaSelected](d) * val
+              );
+            } else
+              return (
+                legendCircleY - 1 - 2 * scales.areaScales[areaSelected](d) * val
+              );
+          });
+
+        legendCircleLabels[i][j]
+          .transition()
+          .duration(1000)
+          .attr("y", (d, i) => {
+            if (i % 2 == 1) {
+              return (
+                legendCircleY -
+                10 -
+                2 * scales.areaScales[areaSelected](d) * val
+              );
+            } else
+              return (
+                legendCircleY - 1 - 2 * scales.areaScales[areaSelected](d) * val
+              );
+          });
+
+        // to draw axes on the forefront
+        xAxes[i][j].call(xAxisGenerators[i][j]);
+        yAxes[i][j].call(yAxisGenerators[i][j]);
       });
 
     sliderInput.on("change", function() {
@@ -304,6 +385,67 @@ async function drawChart() {
         .attr("r", function() {
           return (d3.select(this).attr("rOriginal") * inputValue) / 100;
         });
+
+      let areaSelected = d3.select(`#areaSelection${i}${j}`).property("value");
+      legendCircles[i][j]
+        .transition()
+        .duration(1000)
+        .attr(
+          "cy",
+          d =>
+            legendCircleY -
+            (scales.areaScales[areaSelected](d) * inputValue) / 100
+        )
+        .attr(
+          "r",
+          d => (scales.areaScales[areaSelected](d) * inputValue) / 100
+        );
+
+      legendCircleLines[i][j]
+        .transition()
+        .duration(1000)
+        .attr(
+          "y1",
+          d =>
+            legendCircleY -
+            (2 * scales.areaScales[areaSelected](d) * inputValue) / 100
+        )
+        .attr("y2", (d, i) => {
+          if (i % 2 == 1) {
+            return (
+              legendCircleY -
+              10 -
+              (2 * scales.areaScales[areaSelected](d) * inputValue) / 100
+            );
+          } else
+            return (
+              legendCircleY -
+              1 -
+              (2 * scales.areaScales[areaSelected](d) * inputValue) / 100
+            );
+        });
+
+      legendCircleLabels[i][j]
+        .transition()
+        .duration(1000)
+        .attr("y", (d, i) => {
+          if (i % 2 == 1) {
+            return (
+              legendCircleY -
+              10 -
+              (2 * scales.areaScales[areaSelected](d) * inputValue) / 100
+            );
+          } else
+            return (
+              legendCircleY -
+              1 -
+              (2 * scales.areaScales[areaSelected](d) * inputValue) / 100
+            );
+        });
+
+      // to draw axes on the forefront
+      xAxes[i][j].call(xAxisGenerators[i][j]);
+      yAxes[i][j].call(yAxisGenerators[i][j]);
     });
 
     slider
@@ -354,17 +496,26 @@ async function drawChart() {
         colorScale = d3
           .scaleSequential(d3.interpolateRdBu)
           .domain([
-            d3.max(dataSet.map(row => row[c])),
-            d3.min(dataSet.map(row => row[c]))
+            d3.min(dataSet.map(row => row[c])),
+            d3.max(dataSet.map(row => row[c]))
           ]);
       } else {
         colorScale = d3
           .scaleSequential(d3.interpolateBlues)
-          .domain([d3.max(dataSet.map(row => row[c])), 0]);
+          .domain([
+            d3.min(dataSet.map(row => row[c])),
+            d3.max(dataSet.map(row => row[c]))
+          ]);
       }
 
       scales.colorScales[c] = colorScale;
     });
+
+    let continentColorScale = d3
+      .scaleOrdinal(d3.schemeSet1)
+      .domain(Object.keys(continentCountry));
+
+    scales.colorScales["Continent"] = continentColorScale;
 
     // area scales
     columns
@@ -414,10 +565,10 @@ async function drawChart() {
       .html(
         `
   <p>Country: ${d.Country}</p>
-  <p>${xSelected}: ${d[xSelected]}</p>
-  <p>${ySelected}: ${d[ySelected]}</p>
-  <p>${areaSelected}: ${d[areaSelected]}</p>
-  <p>${colorSelected}: ${d[colorSelected]}</p>`
+  <p>${xSelected}: ${formatters[xSelected](d[xSelected])}</p>
+  <p>${ySelected}: ${formatters[ySelected](d[ySelected])}</p>
+  <p>${areaSelected}: ${formatters[areaSelected](d[areaSelected])}</p>
+  <p>${colorSelected}: ${formatters[colorSelected](d[colorSelected])}</p>`
       )
       .style("position", "absolute")
       .style("left", `${d3.event.pageX + 70}px`)
@@ -429,9 +580,8 @@ async function drawChart() {
   function mouseleave(d, selection, i, j) {
     console.log(`mouseleave: [${i}, ${j}]`);
     d3.select(`#tooltip${i}${j}`).remove();
-    d3.select(selection)
-      .style("stroke", "gray")
-      .style("opacity", 0.7);
+    d3.select(selection).style("stroke", "gray");
+    // .style("opacity", 0.7);
   }
 
   // dots
@@ -475,7 +625,7 @@ async function drawChart() {
         return scales.colorScales[colorSelected](d[colorSelected]);
       })
       .attr("stroke", "gray")
-      .attr("opacity", 0.7)
+      // .attr("opacity", 0.7)
       .attr("country", d => d.Country)
       .on("mouseover", function(d) {
         mouseover(d, this, i, j);
@@ -502,17 +652,17 @@ async function drawChart() {
         `translate(0, ${dimensions.size - dimensions.padding / 2})`
       );
 
-    const xLabel = xAxis
+    const xAxisLabel = xAxis
       .append("text")
       .attr("x", dimensions.size / 2)
-      .attr("y", dimensions.padding - 5)
+      .attr("y", 40)
       .attr("fill", "black")
       .attr("font-size", "1.4em")
       .text(d3.select(`#xSelection${i}${j}`).property("value"));
 
     xAxes[i][j] = xAxis;
     xAxisGenerators[i][j] = xAxisGenerator;
-    xAxesLabels[i][j] = xLabel;
+    xAxesLabels[i][j] = xAxisLabel;
 
     const yAxisGenerator = d3
       .axisLeft(
@@ -529,22 +679,168 @@ async function drawChart() {
           dimensions.size})`
       );
 
-    const yLabel = yAxis
+    const yAxisLabel = yAxis
       .append("text")
-      .attr("x", -dimensions.size / 2)
-      .attr("y", (-dimensions.padding * 2) / 3)
+      // .attr("x", -dimensions.size / 2)
+      // .attr("y", (-dimensions.padding * 2) / 3)
+      .attr("x", 50)
+      .attr("y", dimensions.padding - 60)
       .attr("fill", "black")
       .text(d3.select(`#ySelection${i}${j}`).property("value"))
       .style("font-size", "1.4em")
-      .style("transform", "rotate(-90deg)")
       .style("text-anchor", "middle");
 
     yAxes[i][j] = yAxis;
-    yAxesLabels[i][j] = yLabel;
     yAxisGenerators[i][j] = yAxisGenerator;
+    yAxesLabels[i][j] = yAxisLabel;
   });
 
   circle = cell.selectAll("circle");
+
+  legend = cellHandlers
+    .append("g")
+    .append("svg")
+    .attr("width", 400)
+    .attr("height", 200)
+    .attr("transform", ([i, j]) => {
+      if (j == 0) return `translate(-100, 0)`;
+      else return `translate(-50, 0)`;
+    });
+
+  legend.each(function([i, j]) {
+    let selected = d3.select(`#areaSelection${i}${j}`).property("value");
+    let selectedData = dataSet.map(row => row[selected]);
+    let format = d3.format(".2f");
+    legendValuesToShow[i][j] = [
+      format(d3.min(selectedData)),
+      format(d3.mean(selectedData)),
+      format(d3.max(selectedData))
+    ];
+  });
+
+  legend.each(function([i, j]) {
+    let areaSelected = d3.select(`#areaSelection${i}${j}`).property("value");
+    let colorSelected = d3.select(`#colorSelection${i}${j}`).property("value");
+
+    legendCircleY = 160;
+    legendColorY = 10;
+    legendCircleLeftX = 150;
+    legendColorLeftX = 250;
+    legendColorRightX = 50;
+    legendCircleRightX = 250;
+
+    legendCircleTitles[i][j] = d3
+      .select(this)
+      .append("text")
+      .attr("x", () => {
+        if (j == 0) return legendCircleLeftX;
+        else if (j == 1) return legendCircleRightX;
+      })
+      .attr("y", 10)
+      .attr("dy", "0.35em")
+      // .style("text-anchor", () => {
+      //   if (j == 0) return "end";
+      //   else if (j == 1) return "start";
+      // })
+      .style("text-anchor", "middle")
+      .text(areaSelected);
+
+    legendCircles[i][j] = d3
+      .select(this)
+      .selectAll("circle")
+      .data(legendValuesToShow[i][j])
+      .join("circle")
+      .attr("cx", () => {
+        if (j == 0) return legendCircleLeftX;
+        else if (j == 1) return legendCircleRightX;
+      })
+      .attr("cy", d => legendCircleY - scales.areaScales[areaSelected](d))
+      .attr("cyOriginal", d => {
+        return legendCircleY - scales.areaScales[areaSelected](d);
+      })
+      .attr("r", d => scales.areaScales[areaSelected](d))
+      .attr("rOriginal", d => scales.areaScales[areaSelected](d))
+      .attr("fill", "none")
+      .attr("stroke", "black");
+
+    legendCircleLines[i][j] = d3
+      .select(this)
+      .append("g")
+      .selectAll("line")
+      .data(legendValuesToShow[i][j])
+      .join("line")
+      .attr("x1", () => {
+        if (j == 0) return legendCircleLeftX;
+        else if (j == 1) return legendCircleRightX;
+      })
+      .attr("x2", () => {
+        if (j == 0) return legendCircleLeftX - 50;
+        else if (j == 1) return legendCircleRightX + 50;
+      })
+      .attr("y1", d => legendCircleY - 2 * scales.areaScales[areaSelected](d))
+      .attr("y2", (d, idx) => {
+        if (idx % 2 == 1) {
+          return legendCircleY - 2 * scales.areaScales[areaSelected](d) - 15;
+        } else return legendCircleY - 2 * scales.areaScales[areaSelected](d);
+      })
+      .attr("stroke", "black")
+      .style("stroke-dasharray", "2,2");
+
+    legendCircleLabels[i][j] = d3
+      .select(this)
+      .append("g")
+      .selectAll("text")
+      .data(legendValuesToShow[i][j])
+      .join("text")
+      .attr("x", () => {
+        if (j == 0) return legendCircleLeftX - 60;
+        else if (j == 1) return legendCircleRightX + 60;
+      })
+      .attr("y", (d, idx) => {
+        if (idx % 2 == 1) {
+          return legendCircleY - 2 * scales.areaScales[areaSelected](d) - 15;
+        } else return legendCircleY - 2 * scales.areaScales[areaSelected](d);
+      })
+      .text(d => formatters[areaSelected](d))
+      .style("font-size", 10)
+      .style("display", "block")
+      .attr("aligning-baseline", "middle")
+      .style("text-anchor", () => {
+        if (j == 0) return "end";
+        else if (j == 1) return "start";
+      });
+
+    legendColorBarScales[i][j] = d3
+      .legendColor()
+      .shapeWidth(20)
+      .cells(7)
+      .orient("vertical")
+      .scale(scales.colorScales[colorSelected])
+      .labelFormat(formatters[colorSelected]);
+
+    legendColorTitles[i][j] = d3
+      .select(this)
+      .append("text")
+      .attr("x", () => {
+        if (j == 0) return legendColorLeftX;
+        else if (j == 1) return legendColorRightX;
+      })
+      .attr("y", legendColorY)
+      .attr("dy", "0.35em")
+      .text(colorSelected);
+
+    legendColorBars[i][j] = d3
+      .select(this)
+      .append("g")
+      .attr("transform", () => {
+        if (j == 0)
+          return `translate(${legendColorLeftX}, ${legendColorY + 20})`;
+        else if (j == 1)
+          return `translate(${legendColorRightX}, ${legendColorY + 20})`;
+      });
+
+    legendColorBars[i][j].call(legendColorBarScales[i][j]);
+  });
 
   function brush(cell, circle) {
     const brush = d3
@@ -561,7 +857,6 @@ async function drawChart() {
       .on("end", brushEnded);
 
     let brushCell;
-
     cell.call(brush);
 
     function brushStarted() {
@@ -572,7 +867,7 @@ async function drawChart() {
       }
     }
 
-    function brushed([i, j]) {
+    function brushed([j, i]) {
       console.log("brushed");
       if (d3.event.selection === null) return;
       const [[x0, y0], [x1, y1]] = d3.event.selection;
@@ -597,7 +892,6 @@ async function drawChart() {
 
   cell.call(brush, circle);
   circle.raise();
-
   // connect update function to each selection in each cell
   cell.each(function([j, i]) {
     d3.select(`#ySelection${i}${j}`).on("change", function() {
@@ -630,7 +924,7 @@ function update(scale, selectedOption, xIndex, yIndex) {
       d3.min(dataSet.map(row => row[selectedOption])),
       d3.max(dataSet.map(row => row[selectedOption]))
     ]);
-  } else {
+  } else if (selectedOption != "Continent") {
     selectedScale.domain([0, d3.max(dataSet.map(row => row[selectedOption]))]);
   }
 
@@ -646,15 +940,28 @@ function update(scale, selectedOption, xIndex, yIndex) {
       .duration(1000)
       .attr("cx", d => selectedScale(d[selectedOption]));
 
-    let xAxisGenerator = d3.axisBottom(selectedScale).ticks(6);
+    let longNumbers = [
+      "Current account balance",
+      "Electricity consumption",
+      "Electricity production",
+      "Exports",
+      "GDP",
+      "Natural gas consumption",
+      "Population",
+      "Reserves of foreign exchange & gold"
+    ];
 
-    // xAxes[yIndex][xIndex]
-    xAxes[xIndex][yIndex]
+    let xAxisGenerator = d3.axisBottom(selectedScale);
+    if (longNumbers.includes(selectedOption)) {
+      xAxisGenerator.ticks(2);
+    }
+
+    xAxes[yIndex][xIndex]
       .transition()
       .duration(1000)
       .call(xAxisGenerator);
 
-    xAxesLabels[xIndex][yIndex]
+    xAxesLabels[yIndex][xIndex]
       .transition()
       .duration(1000)
       .text(selectedOption);
@@ -678,7 +985,10 @@ function update(scale, selectedOption, xIndex, yIndex) {
       .duration(1000)
       .text(selectedOption);
   } else if (scale == "areaScale") {
-    selectedScale.range([0, 50]);
+    selectedScale.range([2, 40]);
+    sliderInput.attr("value", null);
+    sliderInput.attr("text", 100).property("value", 100);
+    sliderGenerator.silentValue(1);
 
     dots[xIndex][yIndex]
       .data(dataSet)
@@ -687,17 +997,105 @@ function update(scale, selectedOption, xIndex, yIndex) {
       .attr("r", d => selectedScale(d[selectedOption]))
       .attr("r", d => selectedScale(d[selectedOption]));
 
+    legendCircleTitles[xIndex][yIndex]
+      .transition()
+      .duration(1000)
+      .text(selectedOption);
+
+    let selectedData = dataSet.map(row => row[selectedOption]);
+    let newLegendValues = [
+      d3.format(".2f")(d3.min(selectedData)),
+      d3.format(".2f")(d3.mean(selectedData)),
+      d3.format(".2f")(d3.max(selectedData))
+    ];
+
+    legendCircles[xIndex][yIndex]
+      .data(newLegendValues)
+      .transition()
+      .duration(1000)
+      .attr("cy", d => legendCircleY - scales.areaScales[selectedOption](d))
+      .attr("r", d => scales.areaScales[selectedOption](d))
+      .style("fill", "none")
+      .style("stroke", "black");
+
+    legendCircleLines[xIndex][yIndex]
+      .data(newLegendValues)
+      .transition()
+      .duration(1000)
+      .attr("y1", d => legendCircleY - 2 * selectedScale(d))
+      .attr("y2", (d, i) => {
+        if (i == 0) {
+          return legendCircleY - 2 * selectedScale(d);
+        } else if (i == 1) {
+          return legendCircleY - 2 * selectedScale(d) - 10;
+        } else if (i == 2) {
+          return legendCircleY - 2 * selectedScale(d) - 15;
+        }
+      });
+
+    legendCircleLabels[xIndex][yIndex]
+      .data(newLegendValues)
+      .transition()
+      .duration(1000)
+      .attr("y", (d, i) => {
+        if (i == 0) {
+          return legendCircleY - 2 * selectedScale(d);
+        } else if (i == 1) {
+          return legendCircleY - 2 * selectedScale(d) - 10;
+        } else if (i == 2) {
+          return legendCircleY - 2 * selectedScale(d) - 15;
+        }
+      })
+      .text(d => d);
+
     xAxes[xIndex][yIndex].call(xAxisGenerators[xIndex][yIndex]);
     yAxes[xIndex][yIndex].call(yAxisGenerators[xIndex][yIndex]);
   } else if (scale == "colorScale") {
+    if (
+      columnsWithNegative.has(selectedOption) &&
+      selectedOption != "Continent"
+    ) {
+      selectedScale = d3
+        .scaleSequential(d3.interpolateRdBu)
+        .domain([
+          d3.max(dataSet.map(row => row[selectedOption])),
+          d3.min(dataSet.map(row => row[selectedOption]))
+        ]);
+    }
     dots[xIndex][yIndex]
       .data(dataSet)
       .transition()
-      .style("fill", d => selectedScale(d[selectedOption]))
-      .duration(1000);
+      .duration(1000)
+      .style("fill", d => selectedScale(d[selectedOption]));
+
+    legendColorTitles[xIndex][yIndex]
+      .transition()
+      .duration(1000)
+      .text(selectedOption);
+
+    if (selectedOption != "Continent") {
+      legendColorBarScales[xIndex][yIndex] = null;
+      legendColorBarScales[xIndex][yIndex] = d3
+        .legendColor()
+        .shapeWidth(20)
+        .cells(7)
+        .orient("vertical")
+        .scale(selectedScale)
+        .labelFormat(formatters[selectedOption]);
+    } else {
+      legendColorBarScales[xIndex][yIndex] = null;
+      legendColorBarScales[xIndex][yIndex] = d3
+        .legendColor()
+        .shapeWidth(20)
+        .cells(7)
+        .orient("vertical")
+        .scale(selectedScale);
+    }
+
+    legendColorBars[xIndex][yIndex].call(legendColorBarScales[xIndex][yIndex]);
+    xAxes[xIndex][yIndex].call(xAxisGenerators[xIndex][yIndex]);
+    yAxes[xIndex][yIndex].call(yAxisGenerators[xIndex][yIndex]);
   }
-  xAxes[xIndex][yIndex].call(xAxisGenerators[xIndex][yIndex]);
-  yAxes[xIndex][yIndex].call(yAxisGenerators[xIndex][yIndex]);
 }
 
 drawChart();
