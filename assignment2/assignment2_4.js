@@ -12,7 +12,9 @@ let xAxisGenerators = [[], []];
 let yAxisGenerators = [[], []];
 let dots = [[], []];
 
-let [slider, sliderGenerator, sliderInput] = [];
+let sliders = [[], []];
+let sliderGenerators = [[], []];
+let sliderInputs = [[], []];
 
 let formatters = {};
 let scales = { xScales: {}, yScales: {}, colorScales: {}, areaScales: {} };
@@ -273,24 +275,24 @@ async function drawChart() {
 
   // slider
   cellHandlers.each(function([i, j]) {
-    let slider = d3
+    sliders[i][j] = d3
       .select(`#cellHandler${i}${j}`)
       .append("div")
       .attr("class", "slider")
       .attr("id", `slider${i}${j}`);
 
-    slider.append("label").text("Area Slider");
+    sliders[i][j].append("label").text("Area Slider");
 
-    sliderInput = slider
+    sliderInputs[i][j] = sliders[i][j]
       .append("input")
       .attr("class", "value-simples")
       .attr("id", `value-simple${i}${j}`)
       .attr("value", 100)
       .style("width", "100px");
 
-    slider.append("label").text("%");
+    sliders[i][j].append("label").text("%");
 
-    sliderGenerator = d3
+    sliderGenerators[i][j] = d3
       .sliderBottom()
       .min(0)
       .max(3)
@@ -306,9 +308,9 @@ async function drawChart() {
       )
       .fill("skyblue")
       .on("onchange", val => {
-        sliderInput.attr("value", null);
+        sliderInputs[i][j].attr("value", null);
 
-        sliderInput
+        sliderInputs[i][j]
           .attr("text", (val * 100).toFixed(2))
           .property("value", (val * 100).toFixed(2));
 
@@ -372,9 +374,9 @@ async function drawChart() {
         yAxes[i][j].call(yAxisGenerators[i][j]);
       });
 
-    sliderInput.on("change", function() {
+    sliderInputs[i][j].on("change", function() {
       let inputValue = this.value;
-      sliderGenerator.silentValue(inputValue / 100);
+      sliderGenerators[i][j].silentValue(inputValue / 100);
 
       dots[i][j]
         .transition()
@@ -445,14 +447,14 @@ async function drawChart() {
       yAxes[i][j].call(yAxisGenerators[i][j]);
     });
 
-    slider
+    sliders[i][j]
       .append("svg")
       .attr("width", 250)
       .attr("height", 100)
       .style("display", "block")
       .append("g")
       .attr("transform", "translate(30, 30)")
-      .call(sliderGenerator);
+      .call(sliderGenerators[i][j]);
 
     // Scales
     // xScales
@@ -934,10 +936,13 @@ function update(scale, selectedOption, xIndex, yIndex) {
       .attr("cx", d => selectedScale(d[selectedOption]));
 
     let longNumbers = [
+      "Area",
       "Current account balance",
       "Electricity consumption",
       "Electricity production",
+      "Imports",
       "Exports",
+      "Highways",
       "GDP",
       "Natural gas consumption",
       "Population",
@@ -946,7 +951,7 @@ function update(scale, selectedOption, xIndex, yIndex) {
 
     let xAxisGenerator = d3.axisBottom(selectedScale);
     if (longNumbers.includes(selectedOption)) {
-      xAxisGenerator.ticks(2);
+      xAxisGenerator.ticks(3);
     }
 
     xAxes[yIndex][xIndex]
