@@ -30,7 +30,6 @@ let legendColors = [[], []];
 let legendColorTitles = [[], []];
 let legendColorBars = [[], []];
 let legendColorBarScales = [[], []];
-
 let cellHandlers;
 let circle;
 let dimensions = {
@@ -226,7 +225,7 @@ async function drawChart() {
   const areaLabels = selections.append("label").text("Area");
 
   const areaSelections = selections
-    .append("select") // maybe should exclude columns with negative values
+    .append("select")
     .attr("class", "areaSelections")
     .attr("id", ([i, j]) => `areaSelection${i}${j}`)
     .selectAll("option")
@@ -570,7 +569,6 @@ async function drawChart() {
         return scales.colorScales[colorSelected](d[colorSelected]);
       })
       .attr("stroke", "black");
-    // .attr("opacity", 0.7);
 
     // axes
     const xAxisGenerator = d3
@@ -617,8 +615,6 @@ async function drawChart() {
 
     const yAxisLabel = yAxis
       .append("text")
-      // .attr("x", -dimensions.size / 2)
-      // .attr("y", (-dimensions.padding * 2) / 3)
       .attr("x", 50)
       .attr("y", dimensions.padding - 60)
       .attr("fill", "black")
@@ -674,10 +670,6 @@ async function drawChart() {
       })
       .attr("y", 30)
       .attr("dy", "0.35em")
-      // .style("text-anchor", () => {
-      //   if (j == 0) return "end";
-      //   else if (j == 1) return "start";
-      // })
       .style("text-anchor", "middle")
       .text(areaSelected);
 
@@ -986,18 +978,6 @@ function update(scale, selectedOption, xIndex, yIndex) {
     xAxes[xIndex][yIndex].call(xAxisGenerators[xIndex][yIndex]);
     yAxes[xIndex][yIndex].call(yAxisGenerators[xIndex][yIndex]);
   } else if (scale == "colorScale") {
-    // if (
-    //   columnsWithNegative.has(selectedOption) &&
-    //   selectedOption != "Continent"
-    // ) {
-    //   selectedScale = d3
-    //     .scaleSequential(d3.interpolateRdBu)
-    //     .domain([
-    //       d3.max(dataSet.map(row => row[selectedOption])),
-    //       d3.min(dataSet.map(row => row[selectedOption]))
-    //     ]);
-    // }
-
     dots[xIndex][yIndex]
       .data(dataSet)
       .transition()
@@ -1008,6 +988,7 @@ function update(scale, selectedOption, xIndex, yIndex) {
       .transition()
       .duration(1000)
       .text(selectedOption);
+
     if (selectedOption != "Continent") {
       legendColorBarScales[xIndex][yIndex] = null;
       legendColorBarScales[xIndex][yIndex] = d3
