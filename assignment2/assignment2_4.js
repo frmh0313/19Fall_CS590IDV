@@ -718,7 +718,7 @@ async function drawChart() {
     legendCircleY = 160;
     legendColorY = 10;
     legendCircleLeftX = 150;
-    legendColorLeftX = 230;
+    legendColorLeftX = 250;
     legendColorRightX = 50;
     legendCircleRightX = 250;
 
@@ -729,7 +729,7 @@ async function drawChart() {
         if (j == 0) return legendCircleLeftX;
         else if (j == 1) return legendCircleRightX;
       })
-      .attr("y", 30)
+      .attr("y", 10)
       .attr("dy", "0.35em")
       .style("text-anchor", "middle")
       .text(areaSelected);
@@ -816,7 +816,6 @@ async function drawChart() {
       })
       .attr("y", legendColorY)
       .attr("dy", "0.35em")
-      .style("text-anchor", "start")
       .text(colorSelected);
 
     legendColorBars[i][j] = d3
@@ -985,9 +984,9 @@ function update(scale, selectedOption, xIndex, yIndex) {
       .text(selectedOption);
   } else if (scale == "areaScale") {
     selectedScale.range([2, 40]);
-    sliderInputs[xIndex][yIndex].attr("value", null);
-    sliderInputs[xIndex][yIndex].attr("text", 100).property("value", 100);
-    sliderGenerators[xIndex][yIndex].silentValue(1);
+    sliderInput.attr("value", null);
+    sliderInput.attr("text", 100).property("value", 100);
+    sliderGenerator.silentValue(1);
 
     dots[xIndex][yIndex]
       .data(dataSet)
@@ -1045,7 +1044,7 @@ function update(scale, selectedOption, xIndex, yIndex) {
           return legendCircleY - 2 * selectedScale(d) - 15;
         }
       })
-      .text(d => formatters[selectedOption](d));
+      .text(d => d);
 
     xAxes[xIndex][yIndex].call(xAxisGenerators[xIndex][yIndex]);
     yAxes[xIndex][yIndex].call(yAxisGenerators[xIndex][yIndex]);
