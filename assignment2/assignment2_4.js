@@ -3,29 +3,19 @@ let columns;
 let columnsWithNegative = new Set();
 
 let cell;
-let [xAxis, xAxisGenerator, xAxisLabel, yAxis, yAxisGenerator, yAxisLabel] = [];
 
 let xAxes = [[], []];
 let yAxes = [[], []];
-let xAxisGenerators = [[], []];
-let yAxisGenerators = [[], []];
 let xAxesLabels = [[], []];
 let yAxesLabels = [[], []];
+let xAxisGenerators = [[], []];
+let yAxisGenerators = [[], []];
 let dots = [[], []];
 
 let [slider, sliderGenerator, sliderInput] = [];
 
-let scales = { xScales: {}, yScales: {}, colorScales: {}, areaScales: {} };
-
-let cellHandlers;
-let circle;
-let dimensions = {
-  width: 1560,
-  handler: 220,
-  padding: 90
-};
-
 let formatters = {};
+let scales = { xScales: {}, yScales: {}, colorScales: {}, areaScales: {} };
 
 let legends = [[], []];
 let legendValuesToShow = [[], []];
@@ -40,6 +30,14 @@ let legendColors = [[], []];
 let legendColorTitles = [[], []];
 let legendColorBars = [[], []];
 let legendColorBarScales = [[], []];
+let cellHandlers;
+let circle;
+let dimensions = {
+  width: 1560,
+  handler: 220,
+  padding: 90
+};
+
 dimensions.size =
   (dimensions.width -
     2 * dimensions.handler -
@@ -48,8 +46,6 @@ dimensions.size =
     2 +
   dimensions.padding;
 
-// TODO
-// 2. Color scale - columnsWithNegative - map the point zero to the middle
 async function drawChart() {
   dataSet = await d3
     .csv("./factbook.csv")
@@ -81,6 +77,7 @@ async function drawChart() {
         });
       formatters["Country"] = d3.format("c");
       formatters["Continent"] = d3.format("c");
+
       return data.map(row => {
         columns
           .filter(column => column != "Country")
@@ -227,7 +224,7 @@ async function drawChart() {
   const areaLabels = selections.append("label").text("Area");
 
   const areaSelections = selections
-    .append("select") // maybe should exclude columns with negative values
+    .append("select")
     .attr("class", "areaSelections")
     .attr("id", ([i, j]) => `areaSelection${i}${j}`)
     .selectAll("option")
@@ -492,19 +489,19 @@ async function drawChart() {
     // color scales
     columns.forEach(c => {
       let colorScale;
-      if (columnsWithNegative.has(c)) {
+      if (higherTheMoreBetterOrDeveloped.includes(c)) {
         colorScale = d3
-          .scaleSequential(d3.interpolateRdBu)
+          .scaleSequential(d3.interpolateBlues)
           .domain([
             d3.min(dataSet.map(row => row[c])),
             d3.max(dataSet.map(row => row[c]))
           ]);
       } else {
         colorScale = d3
-          .scaleSequential(d3.interpolateBlues)
+          .scaleSequential(d3.interpolateReds)
           .domain([
-            d3.min(dataSet.map(row => row[c])),
-            d3.max(dataSet.map(row => row[c]))
+            d3.max(dataSet.map(row => row[c])),
+            d3.min(dataSet.map(row => row[c]))
           ]);
       }
 
@@ -533,10 +530,6 @@ async function drawChart() {
   // tooltip
   function mouseover(d, selection, i, j) {
     console.log(`mouseover: [${i}, ${j}]`);
-    // d3.select(`#canvas${i}${j}`)
-    // d3.select("#container")
-    // d3.select("#wrapper")
-    // d3.select(`#container${i}${j}`)
     d3.select(`#wrapper`)
       .append("div")
       .attr("class", "tooltip")
@@ -548,8 +541,8 @@ async function drawChart() {
       .style("border", "solid")
       .style("border-width", "2px")
       .style("border-radius", "5px")
-      .style("padding", "5px");
-    // .style("box-shadow", "4px 4px 10px rgba(0, 0, 0, 0.4)");
+      .style("padding", "5px")
+      .style("box-shadow", "4px 4px 10px rgba(0, 0, 0, 0.4)");
 
     d3.select(selection).style("stroke", "black");
   }
@@ -583,7 +576,6 @@ async function drawChart() {
     console.log(`mouseleave: [${i}, ${j}]`);
     d3.select(`#tooltip${i}${j}`).remove();
     d3.select(selection).style("stroke", "gray");
-    // .style("opacity", 0.7);
   }
 
   // dots
@@ -627,7 +619,6 @@ async function drawChart() {
         return scales.colorScales[colorSelected](d[colorSelected]);
       })
       .attr("stroke", "gray")
-      // .attr("opacity", 0.7)
       .attr("country", d => d.Country)
       .on("mouseover", function(d) {
         mouseover(d, this, i, j);
@@ -683,8 +674,6 @@ async function drawChart() {
 
     const yAxisLabel = yAxis
       .append("text")
-      // .attr("x", -dimensions.size / 2)
-      // .attr("y", (-dimensions.padding * 2) / 3)
       .attr("x", 50)
       .attr("y", dimensions.padding - 60)
       .attr("fill", "black")
@@ -740,10 +729,6 @@ async function drawChart() {
       })
       .attr("y", 10)
       .attr("dy", "0.35em")
-      // .style("text-anchor", () => {
-      //   if (j == 0) return "end";
-      //   else if (j == 1) return "start";
-      // })
       .style("text-anchor", "middle")
       .text(areaSelected);
 
@@ -859,6 +844,7 @@ async function drawChart() {
       .on("end", brushEnded);
 
     let brushCell;
+
     cell.call(brush);
 
     function brushStarted() {
@@ -894,6 +880,11 @@ async function drawChart() {
 
   cell.call(brush, circle);
   circle.raise();
+
+  cell.each(function([j, i]) {
+    xAxes[i][j].raise();
+    yAxes[i][j].raise();
+  });
   // connect update function to each selection in each cell
   cell.each(function([j, i]) {
     d3.select(`#ySelection${i}${j}`).on("change", function() {
@@ -1053,17 +1044,6 @@ function update(scale, selectedOption, xIndex, yIndex) {
     xAxes[xIndex][yIndex].call(xAxisGenerators[xIndex][yIndex]);
     yAxes[xIndex][yIndex].call(yAxisGenerators[xIndex][yIndex]);
   } else if (scale == "colorScale") {
-    if (
-      columnsWithNegative.has(selectedOption) &&
-      selectedOption != "Continent"
-    ) {
-      selectedScale = d3
-        .scaleSequential(d3.interpolateRdBu)
-        .domain([
-          d3.max(dataSet.map(row => row[selectedOption])),
-          d3.min(dataSet.map(row => row[selectedOption]))
-        ]);
-    }
     dots[xIndex][yIndex]
       .data(dataSet)
       .transition()
@@ -1095,8 +1075,8 @@ function update(scale, selectedOption, xIndex, yIndex) {
     }
 
     legendColorBars[xIndex][yIndex].call(legendColorBarScales[xIndex][yIndex]);
-    xAxes[xIndex][yIndex].call(xAxisGenerators[xIndex][yIndex]);
-    yAxes[xIndex][yIndex].call(yAxisGenerators[xIndex][yIndex]);
+    xAxes[xIndex][yIndex].call(xAxisGenerators[xIndex][yIndex]).raise();
+    yAxes[xIndex][yIndex].call(yAxisGenerators[xIndex][yIndex]).raise();
   }
 }
 
