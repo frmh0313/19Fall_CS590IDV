@@ -49,6 +49,8 @@ let legendColor;
 let legendColorTitle;
 let legendColorBars;
 
+let formatters = {};
+
 async function drawFunction() {
   dimensions.boundedHeight =
     dimensions.height - dimensions.margin.top - dimensions.margin.bottom;
@@ -70,7 +72,21 @@ async function drawFunction() {
     )
     .then(data => {
       columns = Object.keys(data[0]);
+      columns
+        .filter(c => c != "Country")
+        .forEach(c => {
+          console.log(data[0][c]);
 
+          if (data[0][c].startsWith("$")) {
+            formatters[c] = d3.format("$,.2f");
+          } else if (+data[0][c].split(",").join("") % 1 == 0) {
+            formatters[c] = d3.format(",.2r");
+          } else {
+            formatters[c] = d3.format(",.2f");
+          }
+        });
+      formatters["Country"] = d3.format("c");
+      formatters["Continent"] = d3.format("c");
       return data.map(row => {
         columns
           .filter(column => column != "Country")
@@ -267,7 +283,6 @@ async function drawFunction() {
       }
       return scales.colorScale(d[colorSelected]);
     })
-    // .style("opacity", "0.7")
     .attr("stroke", "black");
 
   xAxisGenerator = d3.axisBottom(scales.xScale);
@@ -364,7 +379,7 @@ async function drawFunction() {
         return legendCircleY - 2 * scales.areaScale(d) - 10;
       } else return legendCircleY - 2 * scales.areaScale(d);
     })
-    .text(d => d)
+    .text(d => formatters[d3.select("#areaSelection").property("value")](d))
     .style("font-size", 10)
     .style("display", "block")
     .attr("alignment-baseline", "middle");
@@ -374,7 +389,8 @@ async function drawFunction() {
     .shapeWidth(45)
     .cells(9)
     .orient("vertical")
-    .scale(scales.colorScale);
+    .scale(scales.colorScale)
+    .labelFormat(formatters[d3.select("#colorSelection").property("value")]);
 
   let legendColorY = 300;
   legendColorTitle = legend
@@ -390,21 +406,6 @@ async function drawFunction() {
 
   legendColorBars.call(legendColorBarScale);
 
-  legendColorBars
-    .append("rect")
-    .attr("x", 0)
-    .attr("y", 180)
-    .attr("width", 45)
-    .attr("height", 15)
-    .attr("fill", "black");
-
-  legendColorBars
-    .append("text")
-    .attr("x", 55)
-    .attr("y", 180)
-    .text("N/A")
-    .attr("text-anchor", "start")
-    .attr("alignment-baseline", "hanging");
   // slider
   sliderDiv.append("label").text("Area Slider");
 
@@ -682,7 +683,7 @@ function updateScale(scale, selectedOption) {
           return legendCircleY - 2 * selectedScale(d) - 10;
         } else return legendCircleY - 2 * selectedScale(d);
       })
-      .text(d => d);
+      .text(d => formatters[selectedOption](d));
   } else if (scale == "colorScale") {
     if (higherTheMoreBetterOrDeveloped.includes(selectedOption)) {
       selectedScale = d3
@@ -702,6 +703,24 @@ function updateScale(scale, selectedOption) {
 
     if (selectedOption == "Continent") {
       selectedScale = continentColorScale;
+    }
+    if (selectedOption != "Continent") {
+      legendColorBarScale = null;
+      legendColorBarScale = d3
+        .legendColor()
+        .shapeWidth(20)
+        .cells(7)
+        .orient("vertical")
+        .scale(selectedScale)
+        .labelFormat(formatters[selectedOption]);
+    } else {
+      legendColorBarScale = null;
+      legendColorBarScale = d3
+        .legendColor()
+        .shapeWidth(20)
+        .cells(7)
+        .orient("vertical")
+        .scale(selectedScale);
     }
     dots
       .data(dataSet)
