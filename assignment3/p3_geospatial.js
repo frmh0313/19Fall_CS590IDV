@@ -1,5 +1,14 @@
 let dataSet;
 let projection;
+let us;
+let airports;
+
+function getRegion(state) {
+  let regionEntry = Object.entries(regions).find(([regionName, states]) =>
+    states.includes(state)
+  );
+  return regionEntry ? regionEntry[0] : null;
+}
 
 async function drawMap() {
   dataSet = await d3.json("./USAir97v2.json").then(airports => airports);
@@ -16,11 +25,12 @@ async function drawMap() {
     }
   };
 
-  let us = topojson.feature(states, states.objects.states_20m_2017);
+  us = topojson.feature(states, states.objects.states_20m_2017);
   projection = d3 //geoAlbersUsaPr()
     .geoAlbersUsa()
     .scale(1300)
     .translate([487.5, 305]);
+
   let path = d3.geoPath().projection(projection);
 
   let bounds = d3
@@ -34,17 +44,34 @@ async function drawMap() {
       `translate(${dimensions.margin.left}, ${dimensions.margin.top})`
     );
 
+  let regionNames = Object.keys(regions);
+
+  let statesColorScale = d3
+    .scaleOrdinal()
+    .domain(regionNames)
+    .range(d3.schemePastel2);
+
+  let airportColorScale = d3
+    .scaleOrdinal()
+    .domain(regionNames)
+    .range(d3.schemeSet2);
+
   let path_states = bounds
     .selectAll(".state")
     .data(us.features)
     .join("path")
     .attr("class", "state")
+    .attr("fill", d => statesColorScale(getRegion(d.properties.NAME)))
+    // .attr("fill", d => airportColorScale(getRegion(d.properties.NAME)))
+    .attr("stroke", "black")
     .attr("d", path);
 
-  let airports = dataSet.nodes.map(airport => ({
+  airports = dataSet.nodes.map(airport => ({
     state: airport.state,
+    region: getRegion(airport.state),
     coordinates: projection([airport.longitude, airport.latitude])
   }));
+
   console.log("airports");
   console.log(airports);
 
@@ -59,13 +86,6 @@ async function drawMap() {
   console.log(nullNodes);
 
   // console.log(dataSet.links);
-  let nodes = bounds
-    .selectAll("circle")
-    .data(airports.filter(d => d.coordinates != null))
-    .join("circle")
-    .attr("cx", d => d.coordinates[0])
-    .attr("cy", d => d.coordinates[1])
-    .attr("r", 2);
 
   let links = bounds
     .selectAll("line")
@@ -79,8 +99,19 @@ async function drawMap() {
     .attr("y1", d => airports[d.source].coordinates[1])
     .attr("x2", d => airports[d.target].coordinates[0])
     .attr("y2", d => airports[d.target].coordinates[1])
-    .attr("stroke", "#00f")
-    .attr("stroke-opacity", 0.6)
-    .attr("stroke-width", d => d.value * 3);
+    .attr("stroke", "blue")
+    .attr("stroke-opacity", 0.7)
+    .attr("stroke-width", 0.3);
+  // .attr("stroke-width", d => d.value * 3);
+
+  let nodes = bounds
+    .selectAll("circle")
+    .data(airports.filter(d => d.coordinates != null))
+    .join("circle")
+    .attr("cx", d => d.coordinates[0])
+    .attr("cy", d => d.coordinates[1])
+    .attr("r", 3)
+    .attr("fill", d => airportColorScale(d.region))
+    .attr("stroke", "#000");
 }
 drawMap();
