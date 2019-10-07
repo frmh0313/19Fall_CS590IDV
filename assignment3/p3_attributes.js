@@ -4,6 +4,7 @@ let us;
 let airports;
 let linkWidthScale;
 let linkSaturationScale;
+let statesColorScale;
 
 function getRegion(state) {
   let regionEntry = Object.entries(regions).find(([regionName, states]) =>
@@ -63,7 +64,7 @@ async function drawMap() {
 
   let regionNames = Object.keys(regions);
 
-  let statesColorScale = d3
+  statesColorScale = d3
     .scaleOrdinal()
     .domain(regionNames)
     .range(d3.schemeCategory10);
@@ -87,17 +88,19 @@ async function drawMap() {
     .domain(d3.extent(dataSet.links.map(link => link.value)))
     .range([0.5, 1]);
 
+  console.log(statesColorScale.domain());
+
   let path_states = bounds
     .selectAll(".state")
     .data(us.features)
     .join("path")
     .attr("class", "state")
     .attr("fill", d => statesColorScale(getRegion(d.properties.NAME)))
-    // .attr("fill", d => airportColorScale(getRegion(d.properties.NAME)))
     .attr("stroke", "black")
     .attr("opacity", 0.3)
     .attr("d", path);
 
+  console.log(statesColorScale.domain());
   airports = dataSet.nodes.map(airport => ({
     id: airport.id,
     state: airport.state,
@@ -132,11 +135,10 @@ async function drawMap() {
 
   console.log(nullNodes);
 
-  // console.log(dataSet.links);
-
   let linkData = dataSet.links.filter(
     d => !nullNodes.includes(d.source) && !nullNodes.includes(d.target)
   );
+
   let links = bounds
     .selectAll("line")
     .data(linkData)
@@ -148,9 +150,6 @@ async function drawMap() {
     .attr("stroke", "#0055dd")
     .attr("stroke-opacity", d => linkSaturationScale(d.value))
     .attr("stroke-width", d => linkWidthScale(d.value));
-  // .attr("stroke-width", 3);
-  // .attr("stroke-width", 0.3);
-  // .attr("stroke-width", d => d.value * 3);
 
   let nodes = bounds
     .selectAll("circle")
@@ -182,14 +181,14 @@ async function drawMap() {
 
   legendArea.select(".legendImpactFactor").call(legendImpactFactors);
 
+  legendArea.selectAll("circle").style("fill", "skyblue");
   let legendLinkArea = legendArea
     .append("g")
     .attr("transform", "translate(10, 130)");
 
-  let legendPadding = 10;
   legendLinkArea.append("text").text("Frequency of Flights");
 
-  let legendFrequency = legendLinkArea
+  const legendFrequency = legendLinkArea
     .append("g")
     .selectAll("line")
     .data([
@@ -207,7 +206,7 @@ async function drawMap() {
     .attr("opacity", d => linkSaturationScale(d))
     .attr("transform", `translate(10, 20)`);
 
-  legendLinkArea
+  const legendFrequencyLabels = legendLinkArea
     .append("g")
     .selectAll("text")
     .data([
@@ -221,32 +220,20 @@ async function drawMap() {
     .attr("y", 30)
     .attr("font-size", 10)
     .attr("text-anchor", "start")
-    .attr("transform", "translate(10, 10)")
-    .attr("");
+    .attr("transform", "translate(10, 10)");
 
-  // const legendLinkWidth = d3
-  //   .legendSize()
-  //   .scale(linkWidthScale)
-  //   .shape("line")
-  //   .orient("horizontal")
-  //   .labels(["tiny", "small", "medium", "large", "grand"])
-  //   .labelAlign("start")
-  //   .shapeWidth(30)
-  //   .labelWrap(40)
-  //   .shapePadding(10)
-  //   .title("Frequency of Flights");
+  const legendStatesColorArea = legendArea
+    .append("g")
+    .attr("transform", "translate(10, 200)");
 
-  // const legendLinkWidth = d3
-  //   .legendSize()
-  //   .scale(linkWidthScale)
-  //   .shape("line")
-  //   .orient("horizontal")
-  //   .labelWrap(30)
-  //   .shapeWidth(40)
-  //   .labelAlign("start")
-  //   .shapePadding(10)
-  //   .title("Frequency of Flights");
+  statesColorScale.domain(regionNames);
+  let legendStatesColor = d3
+    .legendColor()
+    .scale(statesColorScale)
+    .shapeWidth(40)
+    .orient("vertical")
+    .title("Regions");
 
-  // legendArea.select(".legendLinkWidth").call(legendLinkWidth);
+  legendStatesColorArea.call(legendStatesColor);
 }
 drawMap();
