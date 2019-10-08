@@ -147,6 +147,7 @@ async function drawMap() {
     d => !nullNodes.includes(d.source) && !nullNodes.includes(d.target)
   );
 
+  // this part - should also check other files.
   airportsNullExcluded = airports.filter(
     airport => airport.coordinates != null
   );

@@ -31,7 +31,7 @@ async function drawMap() {
   us = topojson.feature(states, states.objects.states_20m_2017);
   projection = d3 //geoAlbersUsaPr()
     .geoAlbersUsa()
-    .scale(1300)
+    .scale(1150)
     .translate([487.5, 305]);
 
   let path = d3.geoPath().projection(projection);
@@ -106,23 +106,23 @@ async function drawMap() {
     state: airport.state,
     region: getRegion(airport.state),
     coordinates: projection([airport.longitude, airport.latitude]),
-    impactFactor: 0
+    importanceFactor: 0
   }));
 
   console.log("airports");
   console.log(airports);
 
   dataSet.links.forEach(link => {
-    airports.find(airport => airport.id == link.source).impactFactor +=
+    airports.find(airport => airport.id == link.source).importanceFactor +=
       link.value;
   });
 
-  let impactFactorScale = d3
+  let importanceFactorScale = d3
     .scaleLinear()
-    .domain(d3.extent(airports.map(airport => airport.impactFactor)))
+    .domain(d3.extent(airports.map(airport => airport.importanceFactor)))
     .range([3, 20]);
 
-  console.log("airports after calculating impactFactor");
+  console.log("airports after calculating importanceFactor");
   console.log(airports);
   let nullNodes = (() => {
     let nulls = [];
@@ -157,7 +157,7 @@ async function drawMap() {
     .join("circle")
     .attr("cx", d => d.coordinates[0])
     .attr("cy", d => d.coordinates[1])
-    .attr("r", d => impactFactorScale(d.impactFactor))
+    .attr("r", d => importanceFactorScale(d.importanceFactor))
     .attr("fill", d => airportColorScale(d.region))
     .attr("stroke", "#000");
 
@@ -172,7 +172,7 @@ async function drawMap() {
 
   let legendImpactFactors = d3
     .legendSize()
-    .scale(impactFactorScale)
+    .scale(importanceFactorScale)
     .shape("circle")
     .shapePadding(20)
     .labelOffset(25)
