@@ -5,7 +5,7 @@ let airports;
 let linkWidthScale;
 let linkSaturationScale;
 let statesColorScale;
-
+let airportsNullExcluded;
 function getRegion(state) {
   let regionEntry = Object.entries(regions).find(([regionName, states]) =>
     states.includes(state)
@@ -16,7 +16,7 @@ function getRegion(state) {
 async function drawMap() {
   dataSet = await d3.json("./USAir97v2.json").then(airports => airports);
   console.log(dataSet);
-  const width = 975;
+  const width = 1000;
   const height = 610;
   let dimensions = {
     width: d3.min([900, window.innerWidth * 0.9]),
@@ -31,8 +31,8 @@ async function drawMap() {
   us = topojson.feature(states, states.objects.states_20m_2017);
   projection = d3 //geoAlbersUsaPr()
     .geoAlbersUsa()
-    .scale(1300)
-    .translate([487.5, 305]);
+    .scale(1150)
+    .translate([500, 305]);
 
   let path = d3.geoPath().projection(projection);
 
@@ -68,14 +68,11 @@ async function drawMap() {
     .scaleOrdinal()
     .domain(regionNames)
     .range(d3.schemeCategory10);
-  // .range(d3.schemePastel1);
-  // .range(d3.schemePastel2);
 
   let airportColorScale = d3
     .scaleOrdinal()
     .domain(regionNames)
     .range(d3.schemeCategory10);
-  // .range(d3.schemeSet2);
 
   linkWidthScale = d3
     .scaleLinear()
@@ -134,11 +131,12 @@ async function drawMap() {
 
   console.log("airports after calculating importanceFactor");
   console.log(airports);
+
   let nullNodes = (() => {
     let nulls = [];
 
-    airports.forEach((d, i) => {
-      if (d.coordinates == null) nulls.push(i);
+    airports.forEach(d => {
+      if (d.coordinates == null) nulls.push(d.id);
     });
     return nulls;
   })();
@@ -149,25 +147,49 @@ async function drawMap() {
     d => !nullNodes.includes(d.source) && !nullNodes.includes(d.target)
   );
 
+  airportsNullExcluded = airports.filter(
+    airport => airport.coordinates != null
+  );
   let links = bounds
     .append("g")
     .attr("class", "links")
     .selectAll("line")
     .data(linkData)
     .join("line")
-    .attr("x1", d => airports[d.source].coordinates[0])
-    .attr("y1", d => airports[d.source].coordinates[1])
-    .attr("x2", d => airports[d.target].coordinates[0])
-    .attr("y2", d => airports[d.target].coordinates[1])
+    .attr(
+      "x1",
+      d =>
+        airportsNullExcluded.find(airport => airport.id == d.source)
+          .coordinates[0]
+    )
+    .attr(
+      "y1",
+      d =>
+        airportsNullExcluded.find(airport => airport.id == d.source)
+          .coordinates[1]
+    )
+    .attr("x2", d => {
+      console.log(d);
+      return airportsNullExcluded.find(airport => airport.id == d.target)
+        .coordinates[0];
+    })
+    .attr(
+      "y2",
+      d =>
+        airportsNullExcluded.find(airport => airport.id == d.target)
+          .coordinates[1]
+    )
     .attr("stroke", "#0055dd")
     .attr("stroke-opacity", d => linkSaturationScale(d.value))
     .attr("stroke-width", d => linkWidthScale(d.value))
     .on("mouseover", function() {
       linkMouseover(this);
     })
-    .on("mousemove", d => linkMousemove(d))
-    .on("mouseleave", function() {
-      linkMouseleave(this);
+    .on("mousemove", function(d) {
+      linkMousemove(d, this);
+    })
+    .on("mouseleave", function(d) {
+      linkMouseleave(d, this);
     });
 
   let nodes = bounds
@@ -185,7 +207,6 @@ async function drawMap() {
     .attr("cy", d => d.coordinates[1])
     .attr("r", d => importanceFactorScale(d.importanceFactor))
     .attr("fill", d => airportColorScale(d.region))
-    // .attr("stroke", "black");
     .attr("stroke", "#444")
     .on("mouseover", function() {
       nodeMouseover(this);
@@ -285,7 +306,7 @@ async function drawMap() {
       .style("padding", "5px");
 
     d3.select(selection)
-      .style("stroke", "black")
+      .attr("stroke", "black")
       .attr("stroke-width", 2);
     // .raise();
     // d3.select(".nodes").attr("opacity", 0.4);
@@ -314,7 +335,7 @@ async function drawMap() {
     console.log("node mouseleave");
     d3.select(".nodeTooltip").remove();
     d3.select(selection)
-      .style("stroke", "#888")
+      .attr("stroke", "#888")
       .attr("stroke-width", 1);
   }
 
@@ -338,7 +359,7 @@ async function drawMap() {
       .raise();
   }
 
-  function linkMousemove(d) {
+  function linkMousemove(d, selection) {
     console.log("link mousemove");
 
     let source = airports.find(airport => airport.id == d.source);
@@ -355,16 +376,43 @@ async function drawMap() {
       .style("position", "absolute")
       .style("left", `${d3.event.pageX + 70}px`)
       .style("top", `${d3.event.pageY + 70}px`);
+
+    console.log("mouseX: ", d3.event.pageX);
+    console.log("mouseY: ", d3.event.pageY);
     d3.select(".linkTooltip").raise();
+
+    bounds
+      .selectAll("circle")
+      .filter(function() {
+        return (
+          d3.select(this).attr("airportId") == source.id ||
+          d3.select(this).attr("airportId") == target.id
+        );
+      })
+      .attr("stroke", "black")
+      .attr("stroke-width", 2);
   }
 
-  function linkMouseleave(selection) {
+  function linkMouseleave(d, selection) {
     console.log("link mousemove");
+    let source = airports.find(airport => airport.id == d.source);
+    let target = airports.find(airport => airport.id == d.target);
     d3.select(".linkTooltip").remove();
     d3.select(selection)
       .attr("stroke", "#0055dd")
       .attr("stroke-opacity", d => linkSaturationScale(d.value))
       .attr("stroke-width", d => linkWidthScale(d.value));
+
+    bounds
+      .selectAll("circle")
+      .filter(function() {
+        return (
+          d3.select(this).attr("airportId") == source.id ||
+          d3.select(this).attr("airportId") == target.id
+        );
+      })
+      .attr("stroke", "#444")
+      .attr("stroke-width", 1);
   }
 }
 drawMap();
