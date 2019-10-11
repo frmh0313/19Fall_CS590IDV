@@ -17,22 +17,12 @@ async function draw() {
   dimensions.boundedWidth =
     dimensions.width - dimensions.margin.left - dimensions.margin.right;
 
-  dataSet = await d3.json("./USAir97.json").then(data => {
-    let columnsWithNumbers = ["id", "latitude", "longitude", "x", "y"];
-
-    data.nodes.map(row => {
-      columnsWithNumbers.forEach(c => {
-        row[c] = +row[c];
-      });
-      return row;
-    });
-    return data;
-  });
+  dataSet = await d3.json("./USAir97.json").then(data => data);
   console.log(dataSet);
 
-  const nodes = dataSet.nodes;
-  console.log("nodes: ", nodes);
-  const links = dataSet.links;
+  const nodeData = dataSet.nodes;
+  console.log("nodes: ", nodeData);
+  const linkData = dataSet.links;
 
   const wrapper = d3
     .select("#wrapper")
@@ -52,7 +42,7 @@ async function draw() {
 
   const xScale = d3
     .scaleLinear()
-    .domain(d3.extent(nodes, xAccessor))
+    .domain(d3.extent(nodeData, xAccessor))
     .range([0, dimensions.boundedWidth]);
 
   console.log("xScale domain: ", xScale.domain());
@@ -74,7 +64,7 @@ async function draw() {
 
   const yScale = d3
     .scaleLinear()
-    .domain(d3.extent(nodes, yAccessor))
+    .domain(d3.extent(nodeData, yAccessor))
     .range([dimensions.boundedHeight, 0]);
 
   console.log("yScale domain: ", yScale.domain());
@@ -92,11 +82,26 @@ async function draw() {
     .attr("font-size", "1.4em")
     .text("y");
 
-  dots = bounds
+  const links = bounds
+    .append("g")
+    .selectAll("line")
+    .data(linkData)
+    .join("line")
+    .attr("x1", d => xScale(nodeData[d.source - 1].posx))
+    .attr("y1", d => yScale(nodeData[d.source - 1].posy))
+    .attr("x2", d => xScale(nodeData[d.target - 1].posx))
+    .attr("y2", d => yScale(nodeData[d.target - 1].posy))
+    .attr("stroke", "#0055dd")
+    .attr("stroke-width", 0.5)
+    .attr("stroke-opacity", 1);
+
+  const nodes = bounds
     .append("g")
     .selectAll("circle")
-    .data(nodes)
+    .data(nodeData)
     .join("circle")
+    .attr("stroke", "#fff")
+    .attr("stroke-width", 1)
     .attr("cx", d => xScale(xAccessor(d)))
     .attr("cy", d => yScale(yAccessor(d)))
     .attr("r", 5)

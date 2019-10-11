@@ -1,12 +1,6 @@
-let dataSet;
-let bounds;
-let dots;
-
-// const width = d3.min([window.innerWidth * 0.9, window.innerHeight * 0.9]);
-
-async function draw() {
+async function drawChart() {
   let dimensions = {
-    width: 800,
+    width: 1200,
     height: 700,
     margin: {
       top: 15,
@@ -28,10 +22,10 @@ async function draw() {
 
   console.log(dataSet);
 
-  const nodes = dataSet.nodes;
+  const nodeData = dataSet.nodes;
   console.log("nodes");
-  console.log(nodes);
-  const links = dataSet.links;
+  console.log(nodeData);
+  const linkData = dataSet.links;
 
   const wrapper = d3
     .select("#wrapper")
@@ -41,58 +35,55 @@ async function draw() {
 
   bounds = wrapper
     .append("g")
+    .attr("viewBox", [0, 0, 1000, 700])
     .style(
       "transform",
       `translate(${dimensions.margin.left}px, ${dimensions.margin.top}px)`
     );
 
-  const xAccessor = d => d.posx;
-  const yAccessor = d => d.posy;
+  const links = dataSet.links.map(d => Object.create(d));
+  const nodes = dataSet.nodes.map(d => Object.create(d));
 
-  const xScale = d3
-    .scaleLinear()
-    .domain(d3.extent(nodes, xAccessor))
-    .range([0, dimensions.boundedWidth]);
-
-  console.log("xScale domain: ", xScale.domain());
-  console.log("xScale range: ", xScale.range());
-
-  const yScale = d3
-    .scaleLinear()
-    .domain(d3.extent(nodes, yAccessor))
-    .range([dimensions.boundedHeight, 0]);
-
-  console.log("yScale domain: ", yScale.domain());
-  console.log("yScale range: ", yScale.range());
-
-  let simulation = d3
+  const simulation = d3
     .forceSimulation(nodes)
-    .force("charge", d3.forceManyBody().strength(5))
+    .force(
+      "link",
+      d3.forceLink(links).id(d => d.id)
+      // .strength(-1)
+    )
+    .force("charge", d3.forceManyBody().strength(-15))
+    .force("collision", d3.forceCollide().radius(5))
     .force(
       "center",
-      // d3.forceCenter(dimensions.boundedWidth / 2, dimensions.boundedHeight / 2)
-      d3.forceCenter(650 + dimensions.margin.top, 420 + dimensions.margin.left)
-      // d3.forceCenter(440, 420)
-      // d3.forceCenter(464, 437)
+      d3.forceCenter(dimensions.boundedWidth / 2, dimensions.boundedHeight / 2)
     )
-    .force("collision", d3.forceCollide().radius(5))
-    .on("tick", ticked);
+    .on("tick", () => {
+      link
+        .attr("x1", d => d.source.x)
+        .attr("y1", d => d.source.y)
+        .attr("x2", d => d.target.x)
+        .attr("y2", d => d.target.y);
 
-  function ticked() {
-    bounds
-      .selectAll("circle")
-      .data(nodes)
-      .join(
-        enter => enter.append("circle").attr("r", 5),
-        // update => update.attr("cx", d => d.x).attr("cy", d => d.y),
-        update =>
-          update
-            .attr("cx", d => xScale(xAccessor(d)))
-            .attr("cy", d => yScale(yAccessor(d))),
-        exit => exit.remove()
-      );
-  }
+      node.attr("cx", d => d.x).attr("cy", d => d.y);
+    });
 
-  console.log(dataSet);
+  const link = bounds
+    .append("g")
+    .attr("stroke", "#0055dd")
+    .attr("stroke-opacity", 0.6)
+    .selectAll("line")
+    .data(links)
+    .join("line")
+    .attr("stroke-width", 1);
+
+  const node = bounds
+    .append("g")
+    .attr("stroke", "#fff")
+    .attr("stroke-width", 1)
+    .selectAll("circle")
+    .data(nodes)
+    .join("circle")
+    .attr("r", 5);
 }
-draw();
+
+drawChart();
