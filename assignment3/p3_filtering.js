@@ -459,50 +459,48 @@ async function drawMap() {
       console.log("importance Factor slider value: ", val);
 
       console.log("frequency slider value: ", frequencySliderGenerator.value());
-      let frequencyFilteredFlights = linkData.filter(
-        link => link.value >= frequencySliderGenerator.value()
-      );
-
-      let frequencyFilteredAirportsIds = new Set([
-        ...frequencyFilteredFlights.map(flight => flight.source),
-        ...frequencyFilteredFlights.map(flight => flight.target)
-      ]);
-
-      let frequencyFilteredAirports = airports
-        .filter(d => d.coordinates != null)
-        .filter(d => frequencyFilteredAirportsIds.has(d.id))
-        .sort((a, b) => b.importanceFactor - a.importanceFactor);
-
       let importanceFactorFilteredAirports = airports
         .filter(d => d.coordinates != null)
         .filter(d => d.importanceFactor >= val)
         .sort((a, b) => b.importanceFactor - a.importanceFactor);
 
+      console.log("importanceFactorfilteredAirports");
+      console.log(importanceFactorFilteredAirports);
       let importanceFactorFilteredAirportsIds = importanceFactorFilteredAirports.map(
         airport => airport.id
       );
 
-      let importanceFactorFilteredFlights = linkData.filter(
+      console.log("importanceFactorFilteredAirportsIds");
+      console.log(importanceFactorFilteredAirportsIds);
+      // let importanceFactorFilteredFlights = linkData.filter(
+      //   link =>
+      //     importanceFactorFilteredAirportsIds.includes(link.source) &&
+      //     importanceFactorFilteredAirportsIds.includes(link.target)
+      // );
+
+      let frequencyFilteredFlights = linkData.filter(
+        link => link.value >= frequencySliderGenerator.value()
+      );
+
+      let filteredFlights = frequencyFilteredFlights.filter(
         link =>
           importanceFactorFilteredAirportsIds.includes(link.source) &&
           importanceFactorFilteredAirportsIds.includes(link.target)
       );
 
-      let filteredAirports = frequencyFilteredAirports.filter(airport =>
-        importanceFactorFilteredAirportsIds.includes(airport.id)
-      );
-
-      // let filteredAirports = importanceFactorFilteredAirports.filter(airport =>
-      //   frequencyFilteredAirportsIds.has(airport.id)
-      // );
-
-      let filteredFlights = importanceFactorFilteredFlights.filter(flight =>
-        frequencyFilteredFlights.includes(flight)
-      );
-
       let filteredFlightsAirportsIds = new Set([
-        ...filteredFlights.map(flight => flight.source)
+        ...filteredFlights.map(flight => flight.source),
+        ...filteredFlights.map(flight => flight.target)
       ]);
+
+      console.log("filteredFlightsAirportsIds");
+      console.log(filteredFlightsAirportsIds);
+      let filteredAirports = importanceFactorFilteredAirports.filter(airport =>
+        filteredFlightsAirportsIds.has(airport.id)
+      );
+
+      console.log("filtered Airports");
+      console.log(filteredAirports);
       // console.log("filtered Airports");
       // console.log(importanceFactorFilteredAirports);
 
@@ -528,8 +526,8 @@ async function drawMap() {
             .raise()
         );
 
-      console.log("filtered flights by importance factor");
-      console.log(importanceFactorFilteredFlights);
+      // console.log("filtered flights by importance factor");
+      // console.log(importanceFactorFilteredFlights);
 
       d3.select(".links")
         .selectAll("line")
@@ -702,7 +700,7 @@ async function drawMap() {
           nodeMouseleave(this);
         });
 
-        d3.select(".links")
+      d3.select(".links")
         .selectAll("line")
         .data(filteredFlights)
         .join("line")
