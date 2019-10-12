@@ -502,8 +502,6 @@ async function drawMap() {
 
       console.log("filtered Airports");
       console.log(filteredAirports);
-      // console.log("filtered Airports");
-      // console.log(importanceFactorFilteredAirports);
 
       d3.select(".nodes")
         .selectAll("circle")
