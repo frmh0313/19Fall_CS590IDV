@@ -10,8 +10,6 @@ let airportsNullExcluded;
 
 let slidersArea;
 let importanceFactorSliderGenerator;
-let importanceFactorSliderInput;
-let frequencySliderInput;
 let frequencySliderGenerator;
 
 function getRegion(state) {
@@ -459,19 +457,55 @@ async function drawMap() {
     .fill("skyblue")
     .on("onchange", function(val) {
       console.log("importance Factor slider value: ", val);
-      importanceFactorSliderInput.attr("value", null);
 
-      importanceFactorSliderInput
-        .attr("text", val.toFixed(4))
-        .property("value", val.toFixed(4));
+      console.log("frequency slider value: ", frequencySliderGenerator.value());
+      let frequencyFilteredFlights = linkData.filter(
+        link => link.value >= frequencySliderGenerator.value()
+      );
 
-      let filteredAirports = airports
+      let frequencyFilteredAirportsIds = new Set([
+        ...frequencyFilteredFlights.map(flight => flight.source),
+        ...frequencyFilteredFlights.map(flight => flight.target)
+      ]);
+
+      let frequencyFilteredAirports = airports
+        .filter(d => d.coordinates != null)
+        .filter(d => frequencyFilteredAirportsIds.has(d.id))
+        .sort((a, b) => b.importanceFactor - a.importanceFactor);
+
+      let importanceFactorFilteredAirports = airports
         .filter(d => d.coordinates != null)
         .filter(d => d.importanceFactor >= val)
         .sort((a, b) => b.importanceFactor - a.importanceFactor);
 
-      console.log("filtered Airports");
-      console.log(filteredAirports);
+      let importanceFactorFilteredAirportsIds = importanceFactorFilteredAirports.map(
+        airport => airport.id
+      );
+
+      let importanceFactorFilteredFlights = linkData.filter(
+        link =>
+          importanceFactorFilteredAirportsIds.includes(link.source) &&
+          importanceFactorFilteredAirportsIds.includes(link.target)
+      );
+
+      let filteredAirports = frequencyFilteredAirports.filter(airport =>
+        importanceFactorFilteredAirportsIds.includes(airport.id)
+      );
+
+      // let filteredAirports = importanceFactorFilteredAirports.filter(airport =>
+      //   frequencyFilteredAirportsIds.has(airport.id)
+      // );
+
+      let filteredFlights = importanceFactorFilteredFlights.filter(flight =>
+        frequencyFilteredFlights.includes(flight)
+      );
+
+      let filteredFlightsAirportsIds = new Set([
+        ...filteredFlights.map(flight => flight.source)
+      ]);
+      // console.log("filtered Airports");
+      // console.log(importanceFactorFilteredAirports);
+
       d3.select(".nodes")
         .selectAll("circle")
         .data(filteredAirports)
@@ -494,12 +528,8 @@ async function drawMap() {
             .raise()
         );
 
-      let filteredAirportsIds = filteredAirports.map(airport => airport.id);
-      let filteredFlights = linkData.filter(
-        link =>
-          filteredAirportsIds.includes(link.source) &&
-          filteredAirportsIds.includes(link.target)
-      );
+      console.log("filtered flights by importance factor");
+      console.log(importanceFactorFilteredFlights);
 
       d3.select(".links")
         .selectAll("line")
@@ -573,27 +603,86 @@ async function drawMap() {
     .fill("skyblue")
     .on("onchange", function(val) {
       console.log("frequency slider value: ", val);
-      frequencySliderInput.attr("value", null);
 
-      frequencySliderInput
-        .attr("text", val.toFixed(4))
-        .property("value", val.toFixed(4));
+      let importanceFactorFilteredAirports = airports
+        .filter(d => d.coordinates != null)
+        .filter(
+          d => d.importanceFactor >= importanceFactorSliderGenerator.value()
+        )
+        .sort((a, b) => b.importanceFactor - a.importanceFactor);
 
-      let filteredFlights = linkData.filter(link => link.value >= val);
-      console.log("filteredFlights by frequency");
-      console.log(filteredFlights);
-      let filteredAirportsIds = (() => {
-        let filteredAirportsSet = new Set();
-        filteredFlights.forEach(link => {
-          filteredAirportsSet.add(link.source);
-          filteredAirportsSet.add(link.target);
-        });
-        return filteredAirportsSet;
-      })();
-
-      let filteredAirports = airports.filter(airport =>
-        filteredAirportsIds.has(airport.id)
+      let importanceFactorFilteredAirportsIds = importanceFactorFilteredAirports.map(
+        airport => airport.id
       );
+
+      // let importanceFactorFilteredFlights = linkData.filter(
+      //   link =>
+      //     importanceFactorFilteredAirportsIds.includes(link.source) &&
+      //     importanceFactorFilteredAirportsIds.includes(link.target)
+      // );
+
+      let frequencyFilteredFlights = linkData.filter(link => link.value >= val);
+
+      let filteredFlights = frequencyFilteredFlights.filter(
+        link =>
+          importanceFactorFilteredAirportsIds.includes(link.source) &&
+          importanceFactorFilteredAirportsIds.includes(link.target)
+      );
+
+      let filteredFlightsAirportsIds = new Set([
+        ...filteredFlights.map(flight => flight.source),
+        ...filteredFlights.map(flight => flight.target)
+      ]);
+
+      let filteredAirports = importanceFactorFilteredAirports.filter(airport =>
+        filteredFlightsAirportsIds.has(airport.id)
+      );
+
+      console.log("filtered Airports");
+      console.log(filteredAirports);
+      // // let frequencyFilteredAirportsIds = new Set([
+      // //   ...frequencyFilteredFlights.map(flight => flight.source),
+      // //   ...frequencyFilteredFlights.map(flight => flight.target)
+      // // ]);
+
+      // // let filteredFlights = importanceFactorFilteredFlights.filter(
+      // //   flight =>
+      // //     frequencyFilteredFlights.filter(
+      // //       f => f.source == flight.source && f.target == flight.target
+      // //     ).length > 0
+      // // );
+
+      // console.log("filtered flights in frequency");
+      // console.log(filteredFlights);
+      // let filteredFlightsSources = new Set([
+      //   ...filteredFlights.map(flight => flight.source)
+      // ]);
+
+      // let filteredFlightsTargets = new Set([
+      //   ...filteredFlights.map(flight => flight.target)
+      // ]);
+
+      // // let filteredFlightsAirportsIds = new Set([
+      // //   ...filteredFlights.map(flight => flight.source),
+      // //   ...filteredFlights.map(flight => flight.target)
+      // // ]);
+
+      // let filteredFlightsAirportsIds = new Set(
+      //   filteredFlights
+      //     .map(flight => flight.source)
+      //     .filter(flight =>
+      //       filteredFlights.map(flight => flight.target).includes(flight)
+      //     )
+      // );
+      // console.log("filteredFlightsAirportsIds");
+      // console.log(filteredFlightsAirportsIds);
+
+      // let filteredAirports = importanceFactorFilteredAirports.filter(airport =>
+      //   filteredFlightsAirportsIds.has(airport.id)
+      // );
+
+      // console.log("filtered Airports");
+      // console.log(filteredAirports);
 
       d3.select(".nodes")
         .selectAll("circle")
@@ -613,18 +702,15 @@ async function drawMap() {
           nodeMouseleave(this);
         });
 
-      d3.select(".lines")
+        d3.select(".links")
         .selectAll("line")
         .data(filteredFlights)
-        .join(enter =>
-          enter
-            .append("line")
-            .attr(
-              "x1",
-              d =>
-                filteredAirports.find(airport => airport.id == d.source)
-                  .coordinates[0]
-            )
+        .join("line")
+        .attr(
+          "x1",
+          d =>
+            filteredAirports.find(airport => airport.id == d.source)
+              .coordinates[0]
         )
         .attr(
           "y1",
@@ -644,32 +730,6 @@ async function drawMap() {
             filteredAirports.find(airport => airport.id == d.target)
               .coordinates[1]
         )
-
-        // .join("line")
-        // .attr(
-        //   "x1",
-        //   d =>
-        //     filteredAirports.find(airport => airport.id == d.source)
-        //       .coordinates[0]
-        // )
-        // .attr(
-        //   "y1",
-        //   d =>
-        //     filteredAirports.find(airport => airport.id == d.source)
-        //       .coordinates[1]
-        // )
-        // .attr(
-        //   "x2",
-        //   d =>
-        //     filteredAirports.find(airport => airport.id == d.target)
-        //       .coordinates[0]
-        // )
-        // .attr(
-        //   "y2",
-        //   d =>
-        //     filteredAirports.find(airport => airport.id == d.target)
-        //       .coordinates[1]
-        // )
         .attr("stroke", "#0055dd")
         .attr("stroke-opacity", d => linkSaturationScale(d.value))
         .attr("stroke-width", d => linkWidthScale(d.value))
