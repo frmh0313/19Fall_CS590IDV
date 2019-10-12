@@ -28,7 +28,7 @@ async function drawMap() {
   us = topojson.feature(states, states.objects.states_20m_2017);
   projection = d3 //geoAlbersUsaPr()
     .geoAlbersUsa()
-    .scale(1300)
+    .scale(1150)
     .translate([487.5, 305]);
 
   let path = d3.geoPath().projection(projection);
@@ -36,7 +36,6 @@ async function drawMap() {
   let bounds = d3
     .select("#wrapper")
     .append("svg")
-    // .attr("viewBox", [0, 0, 975, 610]);
     .attr("width", 975)
     .attr("height", 610)
     .attr(
@@ -49,12 +48,12 @@ async function drawMap() {
   let statesColorScale = d3
     .scaleOrdinal()
     .domain(regionNames)
-    .range(d3.schemePastel2);
+    .range(d3.schemeCategory10);
 
   let airportColorScale = d3
     .scaleOrdinal()
     .domain(regionNames)
-    .range(d3.schemeSet2);
+    .range(d3.schemeCategory10);
 
   let path_states = bounds
     .selectAll(".state")
@@ -62,8 +61,8 @@ async function drawMap() {
     .join("path")
     .attr("class", "state")
     .attr("fill", d => statesColorScale(getRegion(d.properties.NAME)))
-    // .attr("fill", d => airportColorScale(getRegion(d.properties.NAME)))
     .attr("stroke", "black")
+    .attr("opacity", 0.3)
     .attr("d", path);
 
   airports = dataSet.nodes.map(airport => ({

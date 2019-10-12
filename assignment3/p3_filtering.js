@@ -168,6 +168,7 @@ async function drawMap() {
   airportsNullExcluded = airports.filter(
     airport => airport.coordinates != null
   );
+
   let links = bounds
     .append("g")
     .attr("class", "links")

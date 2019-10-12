@@ -115,6 +115,8 @@ async function drawMap() {
   dataSet.links.forEach(link => {
     airports.find(airport => airport.id == link.source).importanceFactor +=
       link.value;
+    airports.find(airport => airport.id == link.target).importanceFactor +=
+      link.value;
   });
 
   let importanceFactorScale = d3
@@ -127,8 +129,8 @@ async function drawMap() {
   let nullNodes = (() => {
     let nulls = [];
 
-    airports.forEach((d, i) => {
-      if (d.coordinates == null) nulls.push(i);
+    airports.forEach(d => {
+      if (d.coordinates == null) nulls.push(d.id);
     });
     return nulls;
   })();
@@ -139,14 +141,38 @@ async function drawMap() {
     d => !nullNodes.includes(d.source) && !nullNodes.includes(d.target)
   );
 
+  let airportsNullExcluded = airports.filter(
+    airport => airport.coordinates != null
+  );
+
   let links = bounds
     .selectAll("line")
     .data(linkData)
     .join("line")
-    .attr("x1", d => airports[d.source].coordinates[0])
-    .attr("y1", d => airports[d.source].coordinates[1])
-    .attr("x2", d => airports[d.target].coordinates[0])
-    .attr("y2", d => airports[d.target].coordinates[1])
+    .attr(
+      "x1",
+      d =>
+        airportsNullExcluded.find(airport => airport.id == d.source)
+          .coordinates[0]
+    )
+    .attr(
+      "y1",
+      d =>
+        airportsNullExcluded.find(airport => airport.id == d.source)
+          .coordinates[1]
+    )
+    .attr(
+      "x2",
+      d =>
+        airportsNullExcluded.find(airport => airport.id == d.target)
+          .coordinates[0]
+    )
+    .attr(
+      "y2",
+      d =>
+        airportsNullExcluded.find(airport => airport.id == d.target)
+          .coordinates[1]
+    )
     .attr("stroke", "#0055dd")
     .attr("stroke-opacity", d => linkSaturationScale(d.value))
     .attr("stroke-width", d => linkWidthScale(d.value));
@@ -161,25 +187,25 @@ async function drawMap() {
     .attr("fill", d => airportColorScale(d.region))
     .attr("stroke", "#000");
 
-  let legendImpactFactorsArea = legendArea
+  let legendImportanceFactorsArea = legendArea
     .append("g")
     .attr("transform", `translate(10, 20)`);
 
-  legendImpactFactorsArea
+  legendImportanceFactorsArea
     .append("g")
-    .attr("class", "legendImpactFactor")
+    .attr("class", "legendImportanceFactor")
     .attr("transform", "translate(0, 10)");
 
-  let legendImpactFactors = d3
+  let legendImportanceFactors = d3
     .legendSize()
     .scale(importanceFactorScale)
     .shape("circle")
     .shapePadding(20)
     .labelOffset(25)
-    .title("Imapct Factor")
+    .title("Importance Factor")
     .orient("horizontal");
 
-  legendArea.select(".legendImpactFactor").call(legendImpactFactors);
+  legendArea.select(".legendImportanceFactor").call(legendImportanceFactors);
 
   legendArea.selectAll("circle").style("fill", "skyblue");
   let legendLinkArea = legendArea

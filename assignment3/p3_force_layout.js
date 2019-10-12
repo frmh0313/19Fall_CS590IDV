@@ -15,17 +15,24 @@ async function drawChart() {
   dimensions.boundedWidth =
     dimensions.width - dimensions.margin.left - dimensions.margin.right;
 
-  dataSet = await d3.json("./USAir97.json").then(data => {
+  dataSet = await d3.json("./USAir97v2.json").then(data => {
     console.log(data);
     return data;
   });
 
   console.log(dataSet);
 
-  const nodeData = dataSet.nodes;
-  console.log("nodes");
+  // const nodeData = dataSet.nodes;
+  const nodeData = dataSet.nodes.map(node => ({ id: node.id }));
+  console.log("nodeData");
   console.log(nodeData);
-  const linkData = dataSet.links;
+  // const linkData = dataSet.links;
+  const linkData = dataSet.links.map(link => ({
+    source: link.source,
+    target: link.target
+  }));
+  console.log("linkData");
+  console.log(linkData);
 
   const wrapper = d3
     .select("#wrapper")
@@ -35,7 +42,6 @@ async function drawChart() {
 
   bounds = wrapper
     .append("g")
-    .attr("viewBox", [0, 0, 1000, 700])
     .style(
       "transform",
       `translate(${dimensions.margin.left}px, ${dimensions.margin.top}px)`
@@ -46,12 +52,8 @@ async function drawChart() {
 
   const simulation = d3
     .forceSimulation(nodes)
-    .force(
-      "link",
-      d3.forceLink(links).id(d => d.id)
-      // .strength(-1)
-    )
-    .force("charge", d3.forceManyBody().strength(-15))
+    .force("link", d3.forceLink(links).id(d => d.id))
+    .force("charge", d3.forceManyBody().strength(-25))
     .force("collision", d3.forceCollide().radius(5))
     .force(
       "center",
