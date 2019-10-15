@@ -55,8 +55,10 @@ class Chart {
 
   tree(data) {
     const root = d3.hierarchy(data);
-    root.dx = 10;
-    root.dy = this.dimensions.width / (root.height + 1);
+    // this.width = 1500;
+    this.width = window.innerWidth * 0.9;
+    root.dx = 15;
+    root.dy = this.width / (root.height + 1);
     return d3.tree().nodeSize([root.dx, root.dy])(root);
   }
 
@@ -75,8 +77,11 @@ class Chart {
     this.bounds = d3
       .select("#wrapper")
       .append("svg")
-      .attr("viewBox", [0, 0, 932, x1 - x0 + root.dx * 2])
-      .style("font", "10px sans-serif");
+      .attr("viewBox", [0, 0, this.width, x1 - x0 + root.dx * 2])
+      .append("g")
+      .attr("font-family", "sans-serif")
+      .attr("font-size", 10)
+      .attr("transform", `translate(${root.dy / 3}, ${root.dx - x0})`);
 
     const link = this.bounds
       .append("g")
