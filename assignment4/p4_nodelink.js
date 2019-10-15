@@ -2,35 +2,6 @@ class Chart {
   constructor(opts) {
     this.dataSetPath = opts.dataSetPath;
     this.wrapper = opts.element;
-    this.dimensions = {
-      width: 800,
-      height: 700,
-      margin: {
-        top: 15,
-        right: 15,
-        bottom: 40,
-        left: 60
-      }
-    };
-
-    this.dimensions.boundedHeight =
-      this.dimensions.height -
-      this.dimensions.margin.top -
-      this.dimensions.margin.bottom;
-    this.dimensions.boundedWidth =
-      this.dimensions.width -
-      this.dimensions.margin.left -
-      this.dimensions.margin.right;
-
-    this.bounds = this.wrapper
-      .append("svg")
-      .attr("width", this.dimensions.width)
-      .attr("height", this.dimensions.height)
-      .append("g")
-      .style(
-        "transform",
-        `translate(${this.dimensions.margin.left}px, ${this.dimensions.margin.top}px)`
-      );
 
     this.draw();
   }
@@ -51,9 +22,7 @@ class Chart {
           };
         });
 
-      this.fileTree = {};
-      this.fileTree.children = [];
-
+      let arr = [];
       sizePathNameObject.forEach(file => {
         let size = file.size;
         // prev: {[]}, curr: children arr
@@ -62,11 +31,14 @@ class Chart {
           let newChild = {};
           if (!prev.some(dir => dir.name == curr)) {
             newChild.name = curr;
+            newChild.depth = i;
             prev.push(newChild);
           }
           if (i === arr.length - 1) {
-            prev.find(dir => dir.name == curr).size = size;
-            return prev;
+            let leaf = prev.find(dir => dir.name == curr);
+            leaf.size = size;
+            leaf.depth = i;
+            return leaf;
           }
 
           let currElement = prev.find(dir => dir.name == curr);
@@ -74,15 +46,77 @@ class Chart {
             currElement.children = [];
           }
           return currElement.children;
-        }, this.fileTree.children);
+        }, arr);
       });
 
-      this.fileTree = this.fileTree.children[0];
-      return sizePathNameObject;
+      return arr[0];
     });
+  }
+
+  tree(data) {
+    const root = d3.hierarchy(data);
+    root.dx = 10;
+    root.dy = this.dimensions.width / (root.height + 1);
+    return d3.tree().nodeSize([root.dx, root.dy])(root);
   }
 
   async draw() {
     await this.setData(this.dataSetPath);
+
+    const root = this.tree(this.dataSet);
+
+    let x0 = Infinity;
+    let x1 = -x0;
+    root.each(d => {
+      if (d.x > x1) x1 = d.x;
+      if (d.x < x0) x0 = d.x;
+    });
+
+    this.bounds = d3
+      .select("#wrapper")
+      .append("svg")
+      .attr("viewBox", [0, 0, 932, x1 - x0 + root.dx * 2])
+      .style("font", "10px sans-serif");
+
+    const link = this.bounds
+      .append("g")
+      .attr("fill", "none")
+      .attr("stroke", "#555")
+      .attr("stroke-opacity", 0.4)
+      .attr("stroke-width", 1.5)
+      .selectAll("path")
+      .data(root.links())
+      .join("path")
+      .attr(
+        "d",
+        d3
+          .linkHorizontal()
+          .x(d => d.y)
+          .y(d => d.x)
+      );
+
+    const node = this.bounds
+      .append("g")
+      .attr("stroke-linejoin", "round")
+      .attr("stroke-width", 3)
+      .selectAll("g")
+      .data(root.descendants())
+      .join("g")
+      .attr("transform", d => `translate(${d.y}, ${d.x})`);
+
+    node
+      .append("circle")
+      .attr("fill", d => (d.children ? "#555" : "#999"))
+      .attr("r", 2.5);
+
+    node
+      .append("text")
+      .attr("dy", "0.31em")
+      .attr("x", d => (d.children ? -6 : 6))
+      .attr("text-anchor", d => (d.children ? "end" : "start"))
+      .text(d => d.data.name)
+      .clone(true)
+      .lower()
+      .attr("stroke", "white");
   }
 }
