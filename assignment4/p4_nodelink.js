@@ -57,41 +57,86 @@ class Chart {
     const root = d3.hierarchy(data);
     // this.width = 1500;
     this.width = window.innerWidth * 0.9;
+    this.diagonal = d3
+      .linkHorizontal()
+      .x(d => d.y)
+      .y(d => d.x);
     root.dx = 15;
     root.dy = this.width / (root.height + 1);
     return d3.tree().nodeSize([root.dx, root.dy])(root);
   }
 
-  async draw() {
-    await this.setData(this.dataSetPath);
+  update(source) {
+    const nodes = this.root.descendants();
+    const links = this.root.links();
+    const duration = d3.event && d3.event.altKey ? 2500 : 250;
 
-    const root = this.tree(this.dataSet);
+    const transition = this.bounds
+      .transition()
+      .duration(duration)
+      .attr("viewBox", [0, 0, this.width, this.x1 - this.x0 + this.root.dx * 2])
+      .tween(
+        "resize",
+        window.ResizeObserver
+          ? null
+          : () => () => this.bounds.dispatch("toggle")
+      );
 
-    let x0 = Infinity;
-    let x1 = -x0;
-    root.each(d => {
-      if (d.x > x1) x1 = d.x;
-      if (d.x < x0) x0 = d.x;
-    });
+    const node = this.gNode.selectAll("g").data(nodes, d => d.id);
 
-    this.bounds = d3
-      .select("#wrapper")
-      .append("svg")
-      .attr("viewBox", [0, 0, this.width, x1 - x0 + root.dx * 2])
-      .append("g")
-      .attr("font-family", "sans-serif")
-      .attr("font-size", 10)
-      .attr("transform", `translate(${root.dy / 3}, ${root.dx - x0})`);
+    const nodeEnter = node
+      .join("g")
+      .attr("transform", d => `translate(${source.y}, ${source.x})`)
+      // .attr("transform", d => `translate(${d.y}, ${d.x})`)
+      .attr("fill-opacity", 0)
+      .attr("stroke-opacity", 0)
+      .on("click", d => {
+        d.children = d.children ? null : d._children;
+        this.update(d);
+      });
 
-    const link = this.bounds
-      .append("g")
-      .attr("fill", "none")
-      .attr("stroke", "#555")
-      .attr("stroke-opacity", 0.4)
-      .attr("stroke-width", 1.5)
-      .selectAll("path")
-      .data(root.links())
-      .join("path")
+    nodeEnter
+      .append("circle")
+      .attr("r", 2.5)
+      .attr("fill", d => (d._children ? "#555" : "#999"));
+
+    nodeEnter
+      .append("text")
+      .attr("dy", "0.31em")
+      .attr("x", d => (d._children ? -6 : 6))
+      .attr("text-anchor", d => (d._children ? "end" : "start"))
+      .text(d => d.data.name)
+      .clone(true)
+      .lower()
+      .attr("stroke-linejoin", "round")
+      .attr("stroke-width", 3)
+      .attr("stroke", "white");
+
+    const nodeUpdate = node
+      .merge(nodeEnter)
+      .transition(transition)
+      .attr("transform", d => `translate(${d.y}, ${d.x})`)
+      .attr("fill-opacity", 1)
+      .attr("stroke-opacity", 1);
+
+    const nodeExit = node
+      .exit()
+      .transition(transition)
+      .remove()
+      .attr("transform", d => `translate(${source.y}, ${source.x})`)
+      // .attr("transform", d => `translate(${d.y}, ${d.x})`)
+      .attr("fill-opacity", 0)
+      .attr("stroke-opacity", 0);
+
+    const link = this.gLink.selectAll("path").data(links, d => d.target.id);
+
+    const linkEnter = link
+      .enter()
+      .append("path")
+      // .attr("d", d => {
+      //   const o = { x: source.x, y: source.y };
+      //   return d3.linkHorizontal({ source: o, target: o });
+      // });
       .attr(
         "d",
         d3
@@ -100,28 +145,71 @@ class Chart {
           .y(d => d.x)
       );
 
-    const node = this.bounds
+    link
+      .merge(linkEnter)
+      .transition(transition)
+      .attr("d", this.diagonal);
+
+    link
+      .exit()
+      .transition(transition)
+      .remove()
+      .attr("d", d => {
+        const o = { x: source.x, y: source.y };
+        return this.diagonal({ source: o, target: o });
+      });
+
+    this.root.eachBefore(d => {
+      d.x0 = d.x;
+      d.y0 = d.y;
+    });
+  }
+
+  async draw() {
+    await this.setData(this.dataSetPath);
+    this.root = this.tree(this.dataSet);
+
+    this.root.descendants().forEach((d, i) => {
+      d.id = i;
+      if (d.children) {
+        d._children = d.children;
+      }
+    });
+
+    this.x0 = Infinity;
+    this.x1 = -this.x0;
+
+    this.root.each(d => {
+      if (d.x > this.x1) this.x1 = d.x;
+      if (d.x < this.x0) this.x0 = d.x;
+    });
+
+    this.bounds = d3
+      .select("#wrapper")
+      .append("svg")
+      .attr("viewBox", [0, 0, this.width, this.x1 - this.x0 + this.root.dx * 2])
       .append("g")
+      .attr("font-family", "sans-serif")
+      .attr("font-size", 10)
+      .attr(
+        "transform",
+        `translate(${this.root.dy / 3}, ${this.root.dx - this.x0})`
+      );
+
+    this.gLink = this.bounds
+      .append("g")
+      .attr("fill", "none")
+      .attr("stroke", "#555")
+      .attr("stroke-opacity", 0.4)
+      .attr("stroke-width", 1.5);
+
+    this.gNode = this.bounds
+      .append("g")
+      .attr("cursor", "pointer")
+      .attr("pointer-events", "all")
       .attr("stroke-linejoin", "round")
-      .attr("stroke-width", 3)
-      .selectAll("g")
-      .data(root.descendants())
-      .join("g")
-      .attr("transform", d => `translate(${d.y}, ${d.x})`);
+      .attr("stroke-width", 3);
 
-    node
-      .append("circle")
-      .attr("fill", d => (d.children ? "#555" : "#999"))
-      .attr("r", 2.5);
-
-    node
-      .append("text")
-      .attr("dy", "0.31em")
-      .attr("x", d => (d.children ? -6 : 6))
-      .attr("text-anchor", d => (d.children ? "end" : "start"))
-      .text(d => d.data.name)
-      .clone(true)
-      .lower()
-      .attr("stroke", "white");
+    this.update(this.root);
   }
 }
