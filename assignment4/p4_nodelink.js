@@ -2,10 +2,6 @@ class Chart {
   constructor(opts) {
     this.dataSetPath = opts.dataSetPath;
     this.wrapper = opts.element;
-    this.draw();
-  }
-
-  async draw() {
     this.dimensions = {
       width: 800,
       height: 700,
@@ -36,13 +32,57 @@ class Chart {
         `translate(${this.dimensions.margin.left}px, ${this.dimensions.margin.top}px)`
       );
 
-    this.dataSet = await d3.text(this.dataSetPath).then(data => {
+    this.draw();
+  }
+
+  async setData(path) {
+    this.dataSet = await d3.text(path).then(data => {
       let lines = data.split("\n");
-      let sizePathpairs = lines.map(line => ({
-        size: line.split("\t")[0],
-        path: line.split("\t")[1]
-      }));
-      return sizePathpairs;
+      let sizePathNameObject = lines
+        .map(line => ({
+          size: line.split("\t")[0],
+          path: line.split("\t")[1].split("/")
+        }))
+        .map(line => {
+          let nameIndex = line.path.length - 1;
+          return {
+            ...line,
+            name: line.path[nameIndex]
+          };
+        });
+
+      this.fileTree = {};
+      this.fileTree.children = [];
+
+      sizePathNameObject.forEach(file => {
+        let size = file.size;
+        // prev: {[]}, curr: children arr
+
+        file.path.reduce((prev, curr, i, arr) => {
+          let newChild = {};
+          if (!prev.some(dir => dir.name == curr)) {
+            newChild.name = curr;
+            prev.push(newChild);
+          }
+          if (i === arr.length - 1) {
+            prev.find(dir => dir.name == curr).size = size;
+            return prev;
+          }
+
+          let currElement = prev.find(dir => dir.name == curr);
+          if (!currElement.hasOwnProperty("children")) {
+            currElement.children = [];
+          }
+          return currElement.children;
+        }, this.fileTree.children);
+      });
+
+      this.fileTree = this.fileTree.children[0];
+      return sizePathNameObject;
     });
+  }
+
+  async draw() {
+    await this.setData(this.dataSetPath);
   }
 }
