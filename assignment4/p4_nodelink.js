@@ -67,93 +67,118 @@ class Chart {
       getDepth(this.dataSet);
       return d3.max(depthVals);
     })();
+    let sliderInput;
+    let sliderGenerator;
 
+    let that = this;
     this.sliderDiv = this.wrapper.append("div");
 
     this.sliderDiv.append("label").text("Graph depth slider");
 
-    this.sliderInput = this.sliderDiv
+    sliderInput = this.sliderDiv
       .append("input")
       .attr("id", "value-simple")
       .attr("type", "number")
       .style("display", "inline")
-      .attr("value", 1)
+      .attr("value", this.depthThreshold)
       .attr("min", 1)
       .attr("max", maxDepth)
       .on("change", function() {
         console.log("on change input");
         let inputValue = this.value;
-        this.sliderGenerator.silentValue(inputValue / 100);
-        this.depthThreshold = inputValue;
+        sliderGenerator.silentValue(inputValue / 100);
+        that.depthThreshold = inputValue;
+        that.update(that.root, that.gNode, that.gLink);
       });
 
-    this.sliderGenerator = d3
+    sliderGenerator = d3
       .sliderBottom()
       .min(1)
       .max(maxDepth)
       .width(250)
       .step(1)
       .ticks(maxDepth)
-      .default(1)
+      .default(this.depthThreshold)
+      .handle(
+        d3
+          .symbol()
+          .type(d3.symbolCircle)
+          .size(300)
+      )
+      .fill("skyblue")
       .on("onchange", function(val) {
         console.log("slider value: ", val);
-        this.sliderInput.attr("value", null);
+        sliderInput.attr("value", null);
 
-        this.sliderInput.attr("text", val).property("value", val);
+        sliderInput.attr("text", val).property("value", val);
+        that.depthThreshold = val;
+        that.update(that.root, that.gNode, that.gLink);
       });
+
+    this.slider = this.sliderDiv
+      .append("svg")
+      .attr("width", 300)
+      .attr("height", 100)
+      .style("display", "block")
+      .append("g")
+      .attr("transform", "translate(0, 30)")
+      .call(sliderGenerator);
+
+    this.sliderInput = sliderInput;
+    this.sliderGenerator = sliderGenerator;
   }
+
   async draw() {
     await this.setData(this.dataSetPath);
 
-    const that = this;
-    let margin = { top: 10, right: 120, bottom: 10, left: 40 };
-    let width = window.innerWidth * 0.8;
-    // let dx = 10;
-    let dx = 15;
-    let dy = width / 6;
-    // let dy = 500;
-    let tree = d3.tree().nodeSize([dx, dy]);
+    this.margin = { top: 10, right: 120, bottom: 10, left: 40 };
+    this.width = window.innerWidth * 0.8;
+    this.dx = 15;
+    this.dy = this.width / 6;
+    this.tree = d3.tree().nodeSize([this.dx, this.dy]);
 
-    let diagonal = d3
+    this.diagonal = d3
       .linkHorizontal()
       .x(d => d.y)
       .y(d => d.x);
 
-    let root = d3.hierarchy(this.dataSet);
+    this.root = d3.hierarchy(this.dataSet);
 
-    root.x0 = dy / 2;
-    root.y0 = 0;
-    root.descendants().forEach((d, i) => {
+    this.root.x0 = this.dy / 2;
+    this.root.y0 = 0;
+    this.root.descendants().forEach((d, i) => {
       d.id = i;
       if (d.children) {
         d._children = d.children;
-      }
-
-      this.depthThreshold = 2;
-
-      if (d.depth > this.depthThreshold) {
-        d.children = null;
       }
     });
 
     // this.wrapper = d3.select("#wrapper").style("overflow-x", "auto");
 
-    const svg = this.wrapper
+    this.svg = this.wrapper
       .append("svg")
-      .attr("viewBox", [-margin.left, -margin.top, width, dx])
-      .attr("transform", `translate(${-margin.left / 2}, ${margin.top})`)
+      .attr("viewBox", [
+        -this.margin.left,
+        -this.margin.top,
+        this.width,
+        this.dx
+      ])
+      .attr(
+        "transform",
+        `translate(${-this.margin.left / 2}, ${this.margin.top})`
+      )
       // .attr("transform", `translate(${-margin.left}, ${margin.top})`)
       .style("font", "13px sans-serif")
       .style("user-select", "none");
 
-    const gLink = svg
+    this.gLink = this.svg
       .append("g")
       .attr("fill", "none")
       .attr("stroke", "#555")
       .attr("stroke-opacity", 0.4)
       .attr("stroke-width", 1.5);
 
-    const gNode = svg
+    this.gNode = this.svg
       .append("g")
       .attr("cursor", "pointer")
       .attr("pointer-events", "all");
@@ -175,148 +200,167 @@ class Chart {
       return sizeVals;
     })();
 
-    const sizeColorScale = d3
+    this.sizeColorScale = d3
       .scaleSequential(d3.interpolateReds)
-      // .scaleSequential(d3.interpolateBlues)
       .domain(d3.extent(sizeValues));
-    // .domain(d3.extent(sizeValues).reverse());
 
-    function update(source) {
-      const duration = d3.event && d3.event.altKey ? 2500 : 250;
-      const nodes = root.descendants().reverse();
-      console.log("nodes: ", nodes);
-      const links = root.links();
+    this.depthThreshold = 2;
 
-      console.log("source");
-      console.log(source);
-      tree(root);
+    this.update(this.root, this.gNode, this.gLink);
 
-      console.log("root");
-      console.log(root);
-      let left = root;
-      let right = root;
-      root.eachBefore(node => {
-        if (node.x < left.x) left = node;
-        if (node.x > right.x) right = node;
-      });
-
-      console.log("left");
-      console.log(left);
-      console.log("right");
-      console.log(right);
-
-      const height = right.x - left.x + margin.top + margin.bottom;
-
-      const maxY = (() => {
-        let yVals = [];
-        const getYCoordinates = object => {
-          yVals.push(object.y);
-          if (object.children) {
-            object.children.forEach(child => getYCoordinates(child));
-          }
-        };
-        getYCoordinates(root);
-        console.log("yVals.length: ", yVals.length);
-        return d3.max(yVals);
-      })();
-      console.log("maxY");
-      console.log(maxY);
-
-      width = maxY + margin.right + margin.left + 100;
-      console.log("width");
-      console.log(width);
-
-      const transition = svg
-        .transition()
-        .duration(duration)
-        .attr("viewBox", [-margin.left, left.x - margin.top, width, height])
-        .attr("width", width)
-        // .attr("height", height)
-        .tween(
-          "resize",
-          window.ResizeObserver ? null : () => () => svg.dispatch("toggle")
-        );
-
-      const node = gNode.selectAll("g").data(nodes, d => d.id);
-
-      console.log("node");
-      console.log(node);
-      const nodeEnter = node
-        .enter()
-        .append("g")
-        .attr("transform", d => `translate(${source.y}, ${source.x})`)
-        .attr("fill-opacity", 0)
-        .attr("stroke-opacity", 0)
-        .on("click", d => {
-          d.children = d.children ? null : d._children;
-          update(d);
-        });
-
-      nodeEnter
-        .append("circle")
-        .attr("r", 5)
-        .attr("fill", d => sizeColorScale(d.data.size))
-        // .attr("fill", d => (d._children ? "#555" : "#999"))
-        .attr("stroke-width", 2)
-        .attr("stroke", d => (d._children ? "#555" : "#999"));
-
-      nodeEnter
-        .append("text")
-        .attr("dy", "0.31em")
-        .attr("x", d => (d._children ? -6 : 6))
-        .attr("text-anchor", d => (d._children ? "end" : "start"))
-        .text(d => d.data.name)
-        .clone(true)
-        .lower()
-        .attr("stroke-linejoin", "round")
-        .attr("stroke-width", 3)
-        .attr("stroke", "white");
-
-      const nodeUpdate = node
-        .merge(nodeEnter)
-        .transition(transition)
-        .attr("transform", d => `translate(${d.y}, ${d.x})`)
-        .attr("fill-opacity", 1)
-        .attr("stroke-opacity", 1);
-
-      const nodeExit = node
-        .exit()
-        .transition(transition)
-        .remove()
-        .attr("transform", d => `translate(${source.y}, ${source.x})`)
-        .attr("fill-opacity", 0)
-        .attr("stroke-opacity", 0);
-
-      const link = gLink.selectAll("path").data(links, d => d.target.id);
-
-      const linkEnter = link
-        .enter()
-        .append("path")
-        .attr("d", d => {
-          const o = { x: source.x, y: source.y };
-          return diagonal({ source: o, target: o });
-        });
-
-      link
-        .merge(linkEnter)
-        .transition(transition)
-        .attr("d", diagonal);
-
-      link
-        .exit()
-        .transition(transition)
-        .remove()
-        .attr("d", d => {
-          const o = { x: source.x, y: source.y };
-          return diagonal({ source: o, target: o });
-        });
-
-      root.eachBefore(d => {
-        d.y0 = d.y;
-      });
-    }
-    update(root);
-
+    this.setSlider();
     // return d3.select("#wrapper").node();
+  }
+
+  update(source, gNode, gLink) {
+    this.root.descendants().forEach(d => {
+      if (d.depth + 1 > this.depthThreshold) {
+        d.children = null;
+      }
+    });
+
+    const duration = d3.event && d3.event.altKey ? 2500 : 250;
+    const nodes = this.root.descendants().reverse();
+    console.log("nodes: ", nodes);
+    const links = this.root.links();
+
+    console.log("source");
+    console.log(source);
+    this.tree(this.root);
+
+    console.log("root");
+    console.log(this.root);
+    let left = this.root;
+    let right = this.root;
+    this.root.eachBefore(node => {
+      if (node.x < left.x) left = node;
+      if (node.x > right.x) right = node;
+    });
+
+    console.log("left");
+    console.log(left);
+    console.log("right");
+    console.log(right);
+
+    this.height = right.x - left.x + this.margin.top + this.margin.bottom;
+
+    const maxY = (() => {
+      let yVals = [];
+      const getYCoordinates = object => {
+        yVals.push(object.y);
+        if (object.children) {
+          object.children.forEach(child => getYCoordinates(child));
+        }
+      };
+      getYCoordinates(this.root);
+      console.log("yVals.length: ", yVals.length);
+      return d3.max(yVals);
+    })();
+    console.log("maxY");
+    console.log(maxY);
+
+    this.width = maxY + this.margin.right + this.margin.left + 100;
+    console.log("width");
+    console.log(this.width);
+
+    const transition = this.svg
+      .transition()
+      .duration(duration)
+      .attr("viewBox", [
+        -this.margin.left,
+        left.x - this.margin.top,
+        this.width,
+        this.height
+      ])
+      .attr("width", this.width)
+      // .attr("height", height)
+      .tween(
+        "resize",
+        window.ResizeObserver ? null : () => () => svg.dispatch("toggle")
+      );
+
+    const node = gNode.selectAll("g").data(nodes, d => d.id);
+
+    console.log("node");
+    console.log(node);
+    const nodeEnter = node
+      .enter()
+      .append("g")
+      .attr("transform", d => `translate(${source.y}, ${source.x})`)
+      .attr("fill-opacity", 0)
+      .attr("stroke-opacity", 0)
+      .on("click", d => {
+        d.children = d.children ? null : d._children;
+        if (d.depth == this.depthThreshold) {
+          this.depthThreshold = d.depth + 1;
+        }
+
+        this.sliderInput.property("value", this.depthThreshold);
+        this.sliderGenerator.silentValue(this.depthThreshold);
+        this.update(d, this.gNode, this.gLink);
+      });
+
+    nodeEnter
+      .append("circle")
+      .attr("r", 5)
+      .attr("fill", d => this.sizeColorScale(d.data.size))
+      // .attr("fill", d => (d._children ? "#555" : "#999"))
+      .attr("stroke-width", 2)
+      .attr("stroke", d => (d._children ? "#555" : "#999"));
+
+    nodeEnter
+      .append("text")
+      .attr("dy", "0.31em")
+      .attr("x", d => (d._children ? -6 : 6))
+      .attr("text-anchor", d => (d._children ? "end" : "start"))
+      .text(d => d.data.name)
+      .clone(true)
+      .lower()
+      .attr("stroke-linejoin", "round")
+      .attr("stroke-width", 3)
+      .attr("stroke", "white");
+
+    const nodeUpdate = node
+      .merge(nodeEnter)
+      .transition(transition)
+      .attr("transform", d => `translate(${d.y}, ${d.x})`)
+      .attr("fill-opacity", 1)
+      .attr("stroke-opacity", 1);
+
+    const nodeExit = node
+      .exit()
+      .transition(transition)
+      .remove()
+      .attr("transform", d => `translate(${source.y}, ${source.x})`)
+      .attr("fill-opacity", 0)
+      .attr("stroke-opacity", 0);
+
+    const link = gLink.selectAll("path").data(links, d => d.target.id);
+
+    const linkEnter = link
+      .enter()
+      .append("path")
+      .attr("d", d => {
+        const o = { x: source.x, y: source.y };
+        return this.diagonal({ source: o, target: o });
+      });
+
+    link
+      .merge(linkEnter)
+      .transition(transition)
+      .attr("d", this.diagonal);
+
+    link
+      .exit()
+      .transition(transition)
+      .remove()
+      .attr("d", d => {
+        const o = { x: source.x, y: source.y };
+        return this.diagonal({ source: o, target: o });
+      });
+
+    this.root.eachBefore(d => {
+      d.y0 = d.y;
+    });
   }
 }
