@@ -306,13 +306,17 @@ class Chart {
       .attr("fill", d => this.sizeColorScale(d.data.size))
       // .attr("fill", d => (d._children ? "#555" : "#999"))
       .attr("stroke-width", 2)
-      .attr("stroke", d => (d._children ? "#555" : "#999"));
+      // .attr("stroke", "#555");
+      .attr("stroke", "black");
+    // .attr("stroke", d => (d._children ? "#555" : "#999"));
 
     nodeEnter
       .append("text")
       .attr("dy", "0.31em")
       .attr("x", d => (d._children ? -6 : 6))
       .attr("text-anchor", d => (d._children ? "end" : "start"))
+      .style("text-decoration", d => (d._children ? "underline" : "none"))
+      .attr("fill", d => (d._children ? "#5577ee" : "black"))
       .text(d => d.data.name)
       .clone(true)
       .lower()
