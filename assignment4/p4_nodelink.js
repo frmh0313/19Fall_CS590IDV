@@ -128,6 +128,34 @@ class Chart {
     this.sliderGenerator = sliderGenerator;
   }
 
+  setRadioButton() {
+    this.radioButtonDiv = this.wrapper.append("div");
+
+    this.radioButtonDiv
+      .append("input")
+      .attr("type", "radio")
+      .attr("name", "layout")
+      .attr("id", "horizontal")
+      .attr("checked", true)
+      .attr("value", "horizontal");
+
+    this.radioButtonDiv
+      .append("label")
+      .attr("for", "horizontal")
+      .text("Horizontal Layout");
+
+    this.radioButtonDiv
+      .append("input")
+      .attr("type", "radio")
+      .attr("name", "layout")
+      .attr("id", "radial")
+      .attr("value", "radial");
+
+    this.radioButtonDiv
+      .append("label")
+      .attr("for", "radial")
+      .text("Radial Layout");
+  }
   async draw() {
     await this.setData(this.dataSetPath);
 
@@ -210,6 +238,8 @@ class Chart {
 
     this.setSlider();
     // return d3.select("#wrapper").node();
+
+    this.setRadioButton();
   }
 
   update(source, gNode, gLink) {
