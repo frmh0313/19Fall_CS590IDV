@@ -22,6 +22,7 @@ class Chart {
           };
         });
 
+      // parsing given data for tree
       let arr = [];
       sizePathNameObject.forEach(file => {
         let size = file.size;
@@ -55,7 +56,6 @@ class Chart {
 
   tree(data) {
     const root = d3.hierarchy(data);
-    // this.width = 1500;
     this.width = window.innerWidth * 0.9;
     this.diagonal = d3
       .linkHorizontal()
@@ -67,7 +67,7 @@ class Chart {
   }
 
   update(source) {
-    const nodes = this.root.descendants();
+    const nodes = this.root.descendants().reverse();
     const links = this.root.links();
     const duration = d3.event && d3.event.altKey ? 2500 : 250;
 
@@ -86,6 +86,7 @@ class Chart {
 
     const nodeEnter = node
       .join("g")
+      // .attr("transform", d => `translate(${source.dy}, ${source.dx})`)
       .attr("transform", d => `translate(${source.y}, ${source.x})`)
       // .attr("transform", d => `translate(${d.y}, ${d.x})`)
       .attr("fill-opacity", 0)
@@ -115,6 +116,7 @@ class Chart {
     const nodeUpdate = node
       .merge(nodeEnter)
       .transition(transition)
+      // .attr("transform", d => `translate(${source.y}, ${source.x})`)
       .attr("transform", d => `translate(${d.y}, ${d.x})`)
       .attr("fill-opacity", 1)
       .attr("stroke-opacity", 1);
@@ -124,6 +126,7 @@ class Chart {
       .transition(transition)
       .remove()
       .attr("transform", d => `translate(${source.y}, ${source.x})`)
+      // .attr("transform", d => `translate(${source.dy}, ${source.dx})`)
       // .attr("transform", d => `translate(${d.y}, ${d.x})`)
       .attr("fill-opacity", 0)
       .attr("stroke-opacity", 0);
