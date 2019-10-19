@@ -59,8 +59,10 @@ class Chart {
     const that = this;
     let margin = { top: 10, right: 120, bottom: 10, left: 40 };
     let width = window.innerWidth * 0.8;
+    // let dx = 10;
     let dx = 15;
     let dy = width / 6;
+    // let dy = 500;
     let tree = d3.tree().nodeSize([dx, dy]);
 
     let diagonal = d3
@@ -83,12 +85,13 @@ class Chart {
       }
     });
 
-    // this.wrapper = d3.select("#wrapper").style("overflow-y", "auto");
+    // this.wrapper = d3.select("#wrapper").style("overflow-x", "auto");
 
     const svg = this.wrapper
       .append("svg")
       .attr("viewBox", [-margin.left, -margin.top, width, dx])
-      .attr("transform", `translate(${-margin.left}, ${margin.top})`)
+      .attr("transform", `translate(${-margin.left / 2}, ${margin.top})`)
+      // .attr("transform", `translate(${-margin.left}, ${margin.top})`)
       .style("font", "13px sans-serif")
       .style("user-select", "none");
 
@@ -143,7 +146,7 @@ class Chart {
       console.log("maxY");
       console.log(maxY);
 
-      width = maxY + margin.right + margin.left;
+      width = maxY + margin.right + margin.left + 100;
       console.log("width");
       console.log(width);
       const transition = svg
