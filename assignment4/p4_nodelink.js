@@ -2,7 +2,6 @@ class Chart {
   constructor(opts) {
     this.dataSetPath = opts.dataSetPath;
     this.wrapper = opts.element;
-
     this.draw();
   }
 
@@ -56,11 +55,12 @@ class Chart {
 
   async draw() {
     await this.setData(this.dataSetPath);
-    let width = window.innerWidth;
-    let dx = 10;
-    let dy = width / 6;
 
+    const that = this;
     let margin = { top: 10, right: 120, bottom: 10, left: 40 };
+    let width = window.innerWidth * 0.8;
+    let dx = 15;
+    let dy = width / 6;
     let tree = d3.tree().nodeSize([dx, dy]);
 
     let diagonal = d3
@@ -77,12 +77,19 @@ class Chart {
       if (d.children) {
         d._children = d.children;
       }
+
+      if (d.depth > 2) {
+        d.children = null;
+      }
     });
-    d3.select("#wrapper").style("overflow-x", "auto");
+
+    // this.wrapper = d3.select("#wrapper").style("overflow-y", "auto");
+
     const svg = this.wrapper
       .append("svg")
       .attr("viewBox", [-margin.left, -margin.top, width, dx])
-      .style("font", "10px sans-serif")
+      .attr("transform", `translate(${-margin.left}, ${margin.top})`)
+      .style("font", "13px sans-serif")
       .style("user-select", "none");
 
     const gLink = svg
@@ -102,8 +109,12 @@ class Chart {
       const nodes = root.descendants().reverse();
       const links = root.links();
 
+      console.log("source");
+      console.log(source);
       tree(root);
 
+      console.log("root");
+      console.log(root);
       let left = root;
       let right = root;
       root.eachBefore(node => {
@@ -111,12 +122,36 @@ class Chart {
         if (node.x > right.x) right = node;
       });
 
+      console.log("left");
+      console.log(left);
+      console.log("right");
+      console.log(right);
+
       const height = right.x - left.x + margin.top + margin.bottom;
 
+      const maxY = (() => {
+        let yVals = [];
+        function getYCoordinates(object) {
+          yVals.push(object.y);
+          if (object.children) {
+            object.children.forEach(child => getYCoordinates(child));
+          }
+        }
+        getYCoordinates(root);
+        return d3.max(yVals);
+      })();
+      console.log("maxY");
+      console.log(maxY);
+
+      width = maxY + margin.right + margin.left;
+      console.log("width");
+      console.log(width);
       const transition = svg
         .transition()
         .duration(duration)
         .attr("viewBox", [-margin.left, left.x - margin.top, width, height])
+        .attr("width", width)
+        // .attr("height", height)
         .tween(
           "resize",
           window.ResizeObserver ? null : () => () => svg.dispatch("toggle")
@@ -124,6 +159,8 @@ class Chart {
 
       const node = gNode.selectAll("g").data(nodes, d => d.id);
 
+      console.log("node");
+      console.log(node);
       const nodeEnter = node
         .enter()
         .append("g")
@@ -175,7 +212,6 @@ class Chart {
         .append("path")
         .attr("d", d => {
           const o = { x: source.x, y: source.y };
-          // const o = { x: source.x0, y: source.y0 };
           return diagonal({ source: o, target: o });
         });
 
@@ -198,5 +234,7 @@ class Chart {
       });
     }
     update(root);
+
+    // return d3.select("#wrapper").node();
   }
 }
