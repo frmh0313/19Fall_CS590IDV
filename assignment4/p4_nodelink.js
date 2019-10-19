@@ -10,7 +10,7 @@ class Chart {
       let lines = data.split("\n");
       let sizePathNameObject = lines
         .map(line => ({
-          size: line.split("\t")[0],
+          size: +line.split("\t")[0],
           path: line.split("\t")[1].split("/")
         }))
         .map(line => {
@@ -53,6 +53,55 @@ class Chart {
     });
   }
 
+  setSlider() {
+    let maxDepth = (() => {
+      let depthVals = [];
+
+      let getDepth = object => {
+        depthVals.push(object.depth);
+        if (object.children) {
+          object.children.forEach(child => getDepth(child));
+        }
+      };
+
+      getDepth(this.dataSet);
+      return d3.max(depthVals);
+    })();
+
+    this.sliderDiv = this.wrapper.append("div");
+
+    this.sliderDiv.append("label").text("Graph depth slider");
+
+    this.sliderInput = this.sliderDiv
+      .append("input")
+      .attr("id", "value-simple")
+      .attr("type", "number")
+      .style("display", "inline")
+      .attr("value", 1)
+      .attr("min", 1)
+      .attr("max", maxDepth)
+      .on("change", function() {
+        console.log("on change input");
+        let inputValue = this.value;
+        this.sliderGenerator.silentValue(inputValue / 100);
+        this.depthThreshold = inputValue;
+      });
+
+    this.sliderGenerator = d3
+      .sliderBottom()
+      .min(1)
+      .max(maxDepth)
+      .width(250)
+      .step(1)
+      .ticks(maxDepth)
+      .default(1)
+      .on("onchange", function(val) {
+        console.log("slider value: ", val);
+        this.sliderInput.attr("value", null);
+
+        this.sliderInput.attr("text", val).property("value", val);
+      });
+  }
   async draw() {
     await this.setData(this.dataSetPath);
 
@@ -80,7 +129,9 @@ class Chart {
         d._children = d.children;
       }
 
-      if (d.depth > 2) {
+      this.depthThreshold = 2;
+
+      if (d.depth > this.depthThreshold) {
         d.children = null;
       }
     });
@@ -107,9 +158,33 @@ class Chart {
       .attr("cursor", "pointer")
       .attr("pointer-events", "all");
 
+    const sizeValues = (() => {
+      let sizeVals = [];
+
+      const getSize = object => {
+        sizeVals.push(+object.size);
+        if (object.children) {
+          object.children.forEach(child => {
+            getSize(child);
+          });
+        }
+      };
+      getSize(this.dataSet);
+      // console.log("sizeVals.length: ", sizeVals.length);
+      // console.log("domain: ", d3.extent(sizeVals));
+      return sizeVals;
+    })();
+
+    const sizeColorScale = d3
+      .scaleSequential(d3.interpolateReds)
+      // .scaleSequential(d3.interpolateBlues)
+      .domain(d3.extent(sizeValues));
+    // .domain(d3.extent(sizeValues).reverse());
+
     function update(source) {
       const duration = d3.event && d3.event.altKey ? 2500 : 250;
       const nodes = root.descendants().reverse();
+      console.log("nodes: ", nodes);
       const links = root.links();
 
       console.log("source");
@@ -134,13 +209,14 @@ class Chart {
 
       const maxY = (() => {
         let yVals = [];
-        function getYCoordinates(object) {
+        const getYCoordinates = object => {
           yVals.push(object.y);
           if (object.children) {
             object.children.forEach(child => getYCoordinates(child));
           }
-        }
+        };
         getYCoordinates(root);
+        console.log("yVals.length: ", yVals.length);
         return d3.max(yVals);
       })();
       console.log("maxY");
@@ -149,6 +225,7 @@ class Chart {
       width = maxY + margin.right + margin.left + 100;
       console.log("width");
       console.log(width);
+
       const transition = svg
         .transition()
         .duration(duration)
@@ -177,9 +254,11 @@ class Chart {
 
       nodeEnter
         .append("circle")
-        .attr("r", 2.5)
-        .attr("fill", d => (d._children ? "#555" : "#999"))
-        .attr("stroke-width", 10);
+        .attr("r", 5)
+        .attr("fill", d => sizeColorScale(d.data.size))
+        // .attr("fill", d => (d._children ? "#555" : "#999"))
+        .attr("stroke-width", 2)
+        .attr("stroke", d => (d._children ? "#555" : "#999"));
 
       nodeEnter
         .append("text")
