@@ -6,87 +6,87 @@ class Chart {
   }
 
   async setData(path) {
-    // this.dataSet = await d3.json("./filesystem_new.json").then(data => {
-    //   console.log("data: ", data);
-    //   const sum = json => {
-    //     let val = 0;
+    this.dataSet = await d3.json("./filesystem_new.json").then(data => {
+      console.log("data: ", data);
+      const sum = json => {
+        let val = 0;
 
-    //     const sumAux = json => {
-    //       val += json.value;
-    //       if (json.children) {
-    //         json.children.forEach(child => sumAux(child));
-    //       }
-    //     };
-    //     sumAux(json);
-    //     return val;
-    //   };
-
-    //   console.log("json sum: ");
-    //   console.log(sum(data));
-    // console.log(sum(data) - 2518920);
-    // return data;
-    // });
-
-    this.dataSet = await d3.text(path).then(data => {
-      let lines = data.split("\n");
-      let sizePathNameObject = lines
-        .map(line => ({
-          // size: +line.split("\t")[0],
-          value: +line.split("\t")[0],
-          path: line.split("\t")[1].split("/")
-        }))
-        .map(line => {
-          let nameIndex = line.path.length - 1;
-          return {
-            ...line,
-            name: line.path[nameIndex]
-          };
-        });
-
-      console.log("sizePathNameObject");
-      console.log(sizePathNameObject);
-
-      let indices = [];
-      let sum = sizePathNameObject.reduce((a, b, i) => {
-        // console.log("i: ", i);
-        indices.push(i);
-        return a + b.value;
-      }, 0);
-      console.log("counts: ", d3.max(indices)); // works
-      console.log(sum);
-
-      // parsing given data for tree
-      let arr = [];
-      sizePathNameObject.forEach((file, i) => {
-        // console.log("i in SizePath: ", i);
-        let size = file.value;
-        // prev: {[]}, curr: children arr
-
-        file.path.reduce((prev, curr, i, arr) => {
-          let newChild = {};
-          if (!prev.some(dir => dir.name == curr)) {
-            newChild.name = curr;
-            newChild.depth = i;
-            prev.push(newChild);
+        const sumAux = json => {
+          val += json.value;
+          if (json.children) {
+            json.children.forEach(child => sumAux(child));
           }
-          if (i === arr.length - 1) {
-            let leaf = prev.find(dir => dir.name == curr);
-            // leaf.size = size;
-            leaf.value = size;
-            leaf.depth = i;
-            return leaf;
-          }
+        };
+        sumAux(json);
+        return val;
+      };
 
-          let currElement = prev.find(dir => dir.name == curr);
-          if (!currElement.hasOwnProperty("children")) {
-            currElement.children = [];
-          }
-          return currElement.children;
-        }, arr);
-      });
-
-      return arr[0];
+      console.log("json sum: ");
+      console.log(sum(data));
+      console.log(sum(data) - 2518920);
+      return data;
     });
+
+    // this.dataSet = await d3.text(path).then(data => {
+    //   let lines = data.split("\n");
+    //   let sizePathNameObject = lines
+    //     .map(line => ({
+    //       // size: +line.split("\t")[0],
+    //       value: +line.split("\t")[0],
+    //       path: line.split("\t")[1].split("/")
+    //     }))
+    //     .map(line => {
+    //       let nameIndex = line.path.length - 1;
+    //       return {
+    //         ...line,
+    //         name: line.path[nameIndex]
+    //       };
+    //     });
+
+    //   console.log("sizePathNameObject");
+    //   console.log(sizePathNameObject);
+
+    //   let indices = [];
+    //   let sum = sizePathNameObject.reduce((a, b, i) => {
+    //     // console.log("i: ", i);
+    //     indices.push(i);
+    //     return a + b.value;
+    //   }, 0);
+    //   console.log("counts: ", d3.max(indices)); // works
+    //   console.log(sum);
+
+    //   // parsing given data for tree
+    //   let arr = [];
+    //   sizePathNameObject.forEach((file, i) => {
+    //     // console.log("i in SizePath: ", i);
+    //     let size = file.value;
+    //     // prev: {[]}, curr: children arr
+
+    //     file.path.reduce((prev, curr, i, arr) => {
+    //       let newChild = {};
+    //       if (!prev.some(dir => dir.name == curr)) {
+    //         newChild.name = curr;
+    //         newChild.depth = i;
+    //         prev.push(newChild);
+    //       }
+    //       if (i === arr.length - 1) {
+    //         let leaf = prev.find(dir => dir.name == curr);
+    //         // leaf.size = size;
+    //         leaf.value = size;
+    //         leaf.depth = i;
+    //         return leaf;
+    //       }
+
+    //       let currElement = prev.find(dir => dir.name == curr);
+    //       if (!currElement.hasOwnProperty("children")) {
+    //         currElement.children = [];
+    //       }
+    //       return currElement.children;
+    //     }, arr);
+    //   });
+
+    //   return arr[0];
+    // });
   }
 
   setSlider() {
@@ -248,28 +248,28 @@ class Chart {
   async draw() {
     await this.setData(this.dataSetPath);
 
-    const deleteSizeOfNonLeafNodes = tree => {
-      if (tree.children) {
-        delete tree.value;
-        tree.children.forEach(child => deleteSizeOfNonLeafNodes(child));
-      }
-      return tree;
-    };
+    // const deleteSizeOfNonLeafNodes = tree => {
+    //   if (tree.children) {
+    //     delete tree.value;
+    //     tree.children.forEach(child => deleteSizeOfNonLeafNodes(child));
+    //   }
+    //   return tree;
+    // };
 
-    const countElements = tree => {
-      let count = 0;
+    // const countElements = tree => {
+    //   let count = 0;
 
-      const countelementsAux = tree => {
-        count += 1;
-        if (tree.children) {
-          tree.children.forEach(child => countelementsAux(child));
-        }
-      };
-      countelementsAux(tree);
-      return count;
-    };
-    console.log(countElements(this.dataSet));
-    this.dataSet = deleteSizeOfNonLeafNodes(this.dataSet);
+    //   const countelementsAux = tree => {
+    //     count += 1;
+    //     if (tree.children) {
+    //       tree.children.forEach(child => countelementsAux(child));
+    //     }
+    //   };
+    //   countelementsAux(tree);
+    //   return count;
+    // };
+    // console.log(countElements(this.dataSet));
+    // this.dataSet = deleteSizeOfNonLeafNodes(this.dataSet);
 
     // console.log(this.dataSet);
     this.height = 2400;
