@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Task2: Layered Diagrams</title>
+  </head>
+  <body>
+    <div id="wrapper"></div>
+    <script src="https://d3js.org/d3.v5.js"></script>
+    <script src="https://unpkg.com/d3-simple-slider"></script>
+    <script src="p4_layered.js"></script>
+    <script>
+      const chart = new Chart({
+        element: d3.select("#wrapper"),
+        dataSetPath: "./filesystem_new.txt"
+      });
+    </script>
+  </body>
+</html>
