@@ -6,26 +6,27 @@ class Chart {
   }
 
   async setData(path) {
-    this.dataSet = await d3.json("./filesystem_new.json").then(data => {
-      console.log("data: ", data);
-      const sum = json => {
-        let val = 0;
+    this.dataSet = await d3.json("./filesystem_new.json").then(data => data);
+    // this.dataSet = await d3.json("./filesystem_new.json").then(data => {
+    //   console.log("data: ", data);
+    //   const sum = json => {
+    //     let val = 0;
 
-        const sumAux = json => {
-          val += json.value;
-          if (json.children) {
-            json.children.forEach(child => sumAux(child));
-          }
-        };
-        sumAux(json);
-        return val;
-      };
+    //     const sumAux = json => {
+    //       val += json.value;
+    //       if (json.children) {
+    //         json.children.forEach(child => sumAux(child));
+    //       }
+    //     };
+    //     sumAux(json);
+    //     return val;
+    //   };
 
-      console.log("json sum: ");
-      console.log(sum(data));
-      console.log(sum(data) - 2518920);
-      return data;
-    });
+    //   console.log("json sum: ");
+    //   console.log(sum(data));
+    //   console.log(sum(data) - 2518920);
+    //   return data;
+    // });
 
     // this.dataSet = await d3.text(path).then(data => {
     //   let lines = data.split("\n");
@@ -273,9 +274,23 @@ class Chart {
 
     // console.log(this.dataSet);
     this.height = 2400;
-    this.width = 975;
+    this.width = window.innerWidth * 0.9;
 
     this.format = d3.format(",d");
+
+    this.rootLayered = d3
+      .hierarchy(this.dataSet)
+      // .sum(d => d.size)
+      .sum(d => d.value)
+      .sort((a, b) => b.height - a.height || b.value - a.value);
+
+    this.rootLayered.descendants().forEach((d, i) => {
+      // console.log(i);
+      d.id = i;
+      if (d.children) {
+        d._children = d.children;
+      }
+    });
 
     const sizeValues = (() => {
       let sizeVals = [];
@@ -293,101 +308,117 @@ class Chart {
       // console.log("domain: ", d3.extent(sizeVals));
       return sizeVals;
     })();
-    /*
-    this.sizeColorScale = d3
-      .scaleSequential(d3.interpolateYlGnBu)
-      // .scaleSequential(d3.interpolateReds)
-      .domain(d3.extent(sizeValues));
-*/
+
+    // this.sizeColorScale = d3
+    //   .scaleSequential(d3.interpolateYlGnBu)
+    //   // .scaleSequential(d3.interpolateReds)
+    //   .domain(d3.extent(sizeValues));
 
     this.sizeColorScale = d3.scaleOrdinal(
       d3.quantize(d3.interpolateRainbow, this.dataSet.children.length + 1)
     );
-
-    this.svg = this.wrapper
-      .append("svg")
-      .attr("viewBox", [0, 0, this.width, this.height])
-      .style("font", "10px sans-serif");
 
     this.partition = d3
       .partition()
       .size([this.height, this.width])
       .padding(1);
 
-    this.rootLayered = d3
-      .hierarchy(this.dataSet)
-      // .sum(d => d.size)
-      .sum(d => d.value)
-      .sort((a, b) => b.height - a.height || b.value - a.value);
-
-    this.rootLayered.descendants().forEach((d, i) => {
-      // console.log(i);
-      d.id = i;
-      if (d.children) {
-        d._children = d.children;
-      }
-    });
+    this.svg = this.wrapper
+      .append("svg")
+      .attr("viewBox", [0, 0, this.width, this.height])
+      .style("font", "10px sans-serif");
 
     // this.depthThreshold = 2;
     this.updateLayered(this.rootLayered);
   }
 
   updateLayered(source) {
-    // this.rootLayered.descendants().forEach(d => {
-    //   if (d.depth + 1 > this.depthThreshold) {
-    //     d.children = null;
+    this.partition = d3
+      .partition()
+      .size([this.height, this.width])
+      .padding(1);
+
+    this.rootLayered.descendants().forEach(d => {
+      if (d.depth + 1 > this.depthThreshold) {
+        d.children = null;
+      }
+    });
+
+    // console.log("data");
+    // console.log(source.descendants());
+    // this.rootLayered.descendants().forEach((d, i) => {
+    //   d.id = i;
+    //   if (d.children) {
+    //     d._children = d.children;
     //   }
     // });
-
     const duration = d3.event && d3.event.altKey ? 2500 : 250;
 
-    console.log("data");
-    // console.log(source.descendants());
     this.partition(this.rootLayered);
 
     const cell = this.svg
       .selectAll("g")
-      .data(this.rootLayered.descendants())
-      .join("g")
-      .attr("transform", d => `translate(${d.y0}, ${d.x0})`);
+      .data(this.rootLayered.descendants().reverse(), d => d.id);
 
-    cell
+    const cellEnter = cell
+      .enter()
+      .append("g")
+      .attr("transform", d => `translate(${d.y0}, ${d.x0})`)
+      // .attr("transform", d => `translate(${source.y0}, ${source.x0})`)
+      .on("click", d => {
+        // console.log("d: ");
+        // console.log(d);
+        d.children = d.children ? null : d._children;
+        this.updateLayered(d);
+      });
+
+    const cellEnterRect = cellEnter
       .append("rect")
       .attr("width", d => d.y1 - d.y0)
       .attr("height", d => d.x1 - d.x0)
       .attr("fill-opacity", 0.6)
       .attr("fill", d => this.sizeColorScale(d.value));
 
-    const text = cell
-      // .filter(d => d.x1 - d.x0 > 16)
+    const cellTextEnter = cellEnter
+      .filter(d => d.x1 - d.x0 > 16)
       .append("text")
       .attr("x", 4)
-      .attr("y", 13);
+      .attr("y", 13)
+      .style("display", "block");
 
-    text.append("tspan").text(d => d.data.name);
+    cellTextEnter
+      .append("tspan")
+      .style("display", "block")
+      .text(d => d.data.name);
 
-    text
+    cellTextEnter
       .append("tspan")
       .attr("fill-opacity", 0.7)
-      .text(d => `${this.format(d.value)}`);
+      .style("display", "block")
+      .text(d => `\n${this.format(d.value)}`);
 
-    cell.append("title").text(d => {
-      // console.log(
-      //   'd.ancestors().map(d => d.data.name).reverse().join("/")\n${this.format(d.data.size)'
-      // );
-      // console.log(
-      //   `${d
-      //     .ancestors()
-      //     .map(d => d.data.name)
-      //     .reverse()
-      //     .join("/")}\n${this.format(d.data.size)}`
-      // );
-      return `${d
-        .ancestors()
-        .map(d => d.data.name)
-        .reverse()
-        .join("/")}\n${this.format(d.value)}`;
-    });
+    cellEnter.append("title").text(
+      d =>
+        `${d
+          .ancestors()
+          .map(d => d.data.name)
+          .reverse()
+          .join("/")}\n${this.format(d.value)}`
+    );
+
+    const cellUpdate = cell
+      .merge(cellEnter)
+      .transition()
+      .duration(duration)
+      .attr("transform", d => `translate(${d.y0}, ${d.x0})`);
+
+    const cellExit = cell
+      .exit()
+      .transition()
+      .duration(duration)
+      .remove()
+      .attr("transform", d => `translate(${source.y0}, ${source.x0})`)
+      .attr("fill-opacity", 0);
 
     /*  this.svg
       .selectAll("g")
