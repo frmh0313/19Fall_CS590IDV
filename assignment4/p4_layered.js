@@ -7,6 +7,16 @@ class Chart {
 
   async setData(path) {
     this.dataSet = await d3.json("./filesystem_new.json").then(data => data);
+
+    const calDepth = (node, depth) => {
+      node.depth = depth;
+      if (node.children) {
+        node.children.forEach(child => calDepth(child, node.depth + 1));
+      }
+    };
+
+    calDepth(this.dataSet, 0);
+    console.log(this.dataSet);
     // this.dataSet = await d3.json("./filesystem_new.json").then(data => {
     //   console.log("data: ", data);
     //   const sum = json => {
@@ -104,11 +114,13 @@ class Chart {
       getDepth(this.dataSet);
       return d3.max(depthVals);
     })();
+
+    console.log("maxDepth");
+    console.log(maxDepth);
     let sliderInput;
     let sliderGenerator;
 
     let that = this;
-    this.sliderDiv = this.wrapper.append("div");
 
     this.sliderDiv.append("label").text("Graph depth slider");
 
@@ -123,20 +135,17 @@ class Chart {
       .on("change", function() {
         console.log("on change input");
         let inputValue = this.value;
-        sliderGenerator.silentValue(inputValue / 100);
+        console.log("inputValue", inputValue);
+        sliderGenerator.silentValue(inputValue);
+        console.log(sliderGenerator.silentValue());
         that.depthThreshold = inputValue;
         const radioButtonVal = d3
           .selectAll(`input[name="layout"]:checked`)
           .property("value");
         console.log("radioButtonVal: ", radioButtonVal);
         if (d3.select(`input[name="layout"]`).value == "horizontal") {
-          that.updateHorizontal(that.root);
+          that.updateHorizontal(that.rootLayered);
         } else {
-          that.width =
-            window.innerWidth *
-            0.8 *
-            (1 + (this.depthThreshold - 1) / this.depthThreshold);
-          that.height = that.width;
           that.updateRadial(that.rootRadial);
         }
       });
@@ -159,7 +168,6 @@ class Chart {
       .on("onchange", function(val) {
         console.log("slider value: ", val);
         sliderInput.attr("value", null);
-
         sliderInput.attr("text", val).property("value", val);
         that.depthThreshold = val;
         const radioButtonVal = d3
@@ -167,14 +175,9 @@ class Chart {
           .property("value");
         console.log("radioButtonVal: ", radioButtonVal);
 
-        if (radioButtonVal == "horizontal") {
-          that.updateHorizontal(that.root);
+        if (radioButtonVal == "layered") {
+          that.updateLayered(that.rootLayered);
         } else {
-          that.width =
-            window.innerWidth *
-            0.8 *
-            (1 + (this.depthThreshold - 1) / this.depthThreshold);
-          that.height = that.width;
           that.updateRadial(that.rootRadial);
         }
       });
@@ -194,20 +197,19 @@ class Chart {
 
   setRadioButton() {
     const that = this;
-    this.radioButtonDiv = this.wrapper.append("div");
 
     this.radioButtonDiv
       .append("input")
       .attr("type", "radio")
       .attr("name", "layout")
-      .attr("id", "horizontal")
+      .attr("id", "layered")
       .attr("checked", true)
-      .attr("value", "horizontal");
+      .attr("value", "layered");
 
     this.radioButtonDiv
       .append("label")
-      .attr("for", "horizontal")
-      .text("Horizontal Layout");
+      .attr("for", "layered")
+      .text("Layered");
 
     this.radioButtonDiv
       .append("input")
@@ -222,8 +224,8 @@ class Chart {
       .text("Radial Layout");
 
     d3.selectAll(`input[name="layout"]`).on("change", function() {
-      if (this.value == "horizontal") {
-        console.log("updateHorizontal");
+      if (this.value == "layered") {
+        console.log("updateLayered");
         that.gLink.selectAll("path").remove();
         that.gNode.selectAll("g").remove();
         that.updateHorizontal(that.root);
@@ -236,11 +238,7 @@ class Chart {
             d._children = d.children;
           }
         });
-        that.width = window.innerWidth * 0.6;
-        that.height = that.width;
         that.depthThreshold = 2;
-        that.gLink.selectAll("path").remove();
-        that.gNode.selectAll("g").remove();
         that.updateRadial(that.rootRadial);
       }
     });
@@ -249,31 +247,10 @@ class Chart {
   async draw() {
     await this.setData(this.dataSetPath);
 
-    // const deleteSizeOfNonLeafNodes = tree => {
-    //   if (tree.children) {
-    //     delete tree.value;
-    //     tree.children.forEach(child => deleteSizeOfNonLeafNodes(child));
-    //   }
-    //   return tree;
-    // };
+    this.radioButtonDiv = this.wrapper.append("div");
+    this.sliderDiv = this.wrapper.append("div");
 
-    // const countElements = tree => {
-    //   let count = 0;
-
-    //   const countelementsAux = tree => {
-    //     count += 1;
-    //     if (tree.children) {
-    //       tree.children.forEach(child => countelementsAux(child));
-    //     }
-    //   };
-    //   countelementsAux(tree);
-    //   return count;
-    // };
-    // console.log(countElements(this.dataSet));
-    // this.dataSet = deleteSizeOfNonLeafNodes(this.dataSet);
-
-    // console.log(this.dataSet);
-    this.height = 2400;
+    this.height = 5000;
     this.width = window.innerWidth * 0.9;
 
     this.format = d3.format(",d");
@@ -285,12 +262,13 @@ class Chart {
       .sort((a, b) => b.height - a.height || b.value - a.value);
 
     this.rootLayered.descendants().forEach((d, i) => {
-      // console.log(i);
       d.id = i;
       if (d.children) {
         d._children = d.children;
       }
     });
+
+    this.rootLayered.value = this.rootLayered.data.value;
 
     const sizeValues = (() => {
       let sizeVals = [];
@@ -306,6 +284,8 @@ class Chart {
       getSize(this.dataSet);
       // console.log("sizeVals.length: ", sizeVals.length);
       // console.log("domain: ", d3.extent(sizeVals));
+      sizeVals.sort((a, b) => a - b).pop();
+      console.log(sizeVals);
       return sizeVals;
     })();
 
@@ -314,9 +294,10 @@ class Chart {
     //   // .scaleSequential(d3.interpolateReds)
     //   .domain(d3.extent(sizeValues));
 
-    this.sizeColorScale = d3.scaleOrdinal(
-      d3.quantize(d3.interpolateRainbow, this.dataSet.children.length + 1)
-    );
+    this.sizeOpacityScale = d3
+      .scaleLinear()
+      .domain(d3.extent(sizeValues))
+      .range([0.3, 0.45]);
 
     this.partition = d3
       .partition()
@@ -328,11 +309,17 @@ class Chart {
       .attr("viewBox", [0, 0, this.width, this.height])
       .style("font", "10px sans-serif");
 
-    // this.depthThreshold = 2;
+    this.depthThreshold = 2;
+
+    this.setRadioButton();
+    this.setSlider();
     this.updateLayered(this.rootLayered);
   }
 
   updateLayered(source) {
+    this.height = 5000;
+    this.width = window.innerWidth * 0.9;
+
     this.partition = d3
       .partition()
       .size([this.height, this.width])
@@ -364,11 +351,14 @@ class Chart {
       .enter()
       .append("g")
       .attr("transform", d => `translate(${d.y0}, ${d.x0})`)
-      // .attr("transform", d => `translate(${source.y0}, ${source.x0})`)
       .on("click", d => {
-        // console.log("d: ");
-        // console.log(d);
         d.children = d.children ? null : d._children;
+        if (d.depth == this.depthThreshold) {
+          this.depthThreshold = d.depth + 1;
+        }
+
+        this.sliderInput.property("value", this.depthThreshold);
+        this.sliderGenerator.silentValue(this.depthThreshold);
         this.updateLayered(d);
       });
 
@@ -376,12 +366,21 @@ class Chart {
       .append("rect")
       .attr("width", d => d.y1 - d.y0)
       .attr("height", d => d.x1 - d.x0)
-      .attr("fill-opacity", 0.6)
-      .attr("fill", d => this.sizeColorScale(d.value));
+      .attr("stroke-width", 2)
+      .attr("fill-opacity", d => this.sizeOpacityScale(d.value))
+      .attr("fill", d => {
+        if (!d.depth) {
+          return "#ccc";
+        } else {
+          return "blue";
+        }
+      });
+    // .attr("fill", "blue");
 
     const cellTextEnter = cellEnter
       .filter(d => d.x1 - d.x0 > 16)
       .append("text")
+      .style("text-decoration", d => (d._children ? "underline" : "none"))
       .attr("x", 4)
       .attr("y", 13)
       .style("display", "block");
@@ -419,59 +418,7 @@ class Chart {
       .remove()
       .attr("transform", d => `translate(${source.y0}, ${source.x0})`)
       .attr("fill-opacity", 0);
-
-    /*  this.svg
-      .selectAll("g")
-      .data(this.rootLayered.descendants())
-      .join(
-        enter => {
-          console.log("enter selection");
-          console.log(enter);
-          enter
-            .append("g")
-            .attr("transform", d => `translate(${source.y0}, ${source.x0})`);
-          // .attr("transform", d => `translate(${d.y}, ${d.x})`);
-
-          enter
-            .append("rect")
-            .attr("width", d => d.y1 - d.y0)
-            .attr("height", d => d.x1 - d.x0)
-            .attr("fill-opacity", 0.6)
-            .attr("fill", d => this.sizeColorScale(d.data.size));
-
-          const text = enter
-            .filter(d => d.x1 - d.x0 > 16)
-            .append("text")
-            .attr("x", 4)
-            .attr("y", 13);
-          text.append("tspan").text(d => d.data.name);
-
-          text
-            .append("tspan")
-            .attr("fill-opacity", 0.7)
-            .text(d => `${d3.format(",d")(d.data.size)}`);
-
-          enter.append("title").text(
-            d =>
-              `${d
-                .ancestors()
-                .map(d => d.data.name)
-                .reverse()
-                .join("/")}\n${d3.format(",d")(d.data.size)}`
-          );
-        },
-        update =>
-          update
-            .transition()
-            .duration(duration)
-            .attr("transform", d => `translate(${d.y}, ${d.x})`),
-        exit =>
-          exit
-            .transition()
-            .duration(duration)
-            .remove()
-            .attr("transform", d => `translate(${source.y}, ${source.x})`)
-      );
-      */
   }
+
+  updateRadial(source) {}
 }
