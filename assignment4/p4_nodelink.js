@@ -638,7 +638,7 @@ class Chart {
         ]);
       }
 
-      d.children = d.children ? null : d._children;
+      d.children = d.children ? null : d._children; //??
       if (d.depth == this.depthThreshold) {
         this.depthThreshold = d.depth + 1;
         // this.width = this.g.node().getBBox().width;

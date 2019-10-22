@@ -146,6 +146,10 @@ class Chart {
         if (d3.select(`input[name="layout"]`).value == "horizontal") {
           that.updateHorizontal(that.rootHorizontal);
         } else {
+          that.rootRadial = d3
+            .hierarchy(that.dataSet)
+            .sum(d => d.value)
+            .sort((a, b) => b.value - a.value);
           that.updateRadial(that.rootRadial);
         }
       });
@@ -471,12 +475,7 @@ class Chart {
       .innerRadius(d => d.y0)
       .outerRadius(d => d.y1 - 1);
 
-    this.partitionRadial = d3.partition().size([2 * Math.PI, this.radius]);
-
-    this.rootRadial = d3
-      .hierarchy(this.dataSet)
-      .sum(d => d.value)
-      .sort((a, b) => b.value - a.value);
+    this.radialPartition = d3.partition().size([2 * Math.PI, this.radius]);
 
     this.rootRadial.descendants().forEach((d, i) => {
       d.id = i;
@@ -493,7 +492,7 @@ class Chart {
 
     const duration = d3.event && d3.event.altKey ? 2500 : 250;
 
-    this.partitionRadial(this.rootRadial);
+    this.radialPartition(this.rootRadial);
 
     const path = this.svg
       .append("g")
