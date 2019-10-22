@@ -54,13 +54,7 @@ class Chart {
       } else {
         console.log("updateRadial");
         that.rootRadial = d3.hierarchy(that.dataSet);
-        // that.rootRadial.descendants().forEach((d, i) => {
-        //   d.id = i;
-        //   if (d.children) {
-        //     d._children = d.children;
-        //   }
-        // });
-        // that.width = window.innerWidth * 0.6;
+
         that.width = that.height = 1200;
         that.rootRadial = d3
           .hierarchy(that.dataSet)
@@ -173,19 +167,6 @@ class Chart {
           .reverse()
           .join("/")}\n${this.format(d.value)}`
     );
-    // const node = this.svg
-    //   .append("g")
-    //   .selectAll("circle")
-    //   .data(this.rootRadial.descendants().slice(1))
-    //   .join("circle")
-    //   .attr("fill", d => (d.children ? radialColor(d.depth) : "white"))
-    //   .attr("pointer-events", d => (!d.children ? "none" : null))
-    //   .on("mouseover", function() {
-    //     d3.select(this).attr("stroke", "#000");
-    //   })
-    //   .on("mouseout", function() {
-    //     d3.select(this).attr("stroke", null);
-    //   });
 
     const label = this.svg
       .append("g")

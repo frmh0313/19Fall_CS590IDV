@@ -266,7 +266,6 @@ class Chart {
 
     this.rootHorizontal = d3
       .hierarchy(this.dataSet)
-      // .sum(d => d.size)
       .sum(d => d.value)
       .sort((a, b) => b.height - a.height || b.value - a.value);
 
@@ -296,17 +295,10 @@ class Chart {
         }
       };
       getSize(this.dataSet);
-      // console.log("sizeVals.length: ", sizeVals.length);
-      // console.log("domain: ", d3.extent(sizeVals));
       sizeVals.sort((a, b) => a - b).pop();
       console.log(sizeVals);
       return sizeVals;
     })();
-
-    // this.sizeColorScale = d3
-    //   .scaleSequential(d3.interpolateYlGnBu)
-    //   // .scaleSequential(d3.interpolateReds)
-    //   .domain(d3.extent(sizeValues));
 
     this.sizeOpacityScale = d3
       .scaleLinear()
