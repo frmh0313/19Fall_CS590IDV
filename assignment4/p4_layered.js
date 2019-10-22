@@ -146,10 +146,10 @@ class Chart {
         if (d3.select(`input[name="layout"]`).value == "horizontal") {
           that.updateHorizontal(that.rootHorizontal);
         } else {
-          that.rootRadial = d3
-            .hierarchy(that.dataSet)
-            .sum(d => d.value)
-            .sort((a, b) => b.value - a.value);
+          // that.rootRadial = d3
+          //   .hierarchy(that.dataSet)
+          //   .sum(d => d.value)
+          //   .sort((a, b) => b.value - a.value);
           that.updateRadial(that.rootRadial);
         }
       });
