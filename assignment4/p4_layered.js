@@ -143,7 +143,7 @@ class Chart {
           .selectAll(`input[name="layout"]:checked`)
           .property("value");
         // console.log("radioButtonVal: ", radioButtonVal);
-        if (d3.select(`input[name="layout"]`).value == "horizontal") {
+        if (radioButtonVal == "horizontal") {
           that.updateHorizontal(that.rootHorizontal);
         } else {
           // that.rootRadial = d3
@@ -240,7 +240,8 @@ class Chart {
             d._children = d.children;
           }
         });
-        that.width = window.innerWidth * 0.6;
+        // that.width = window.innerWidth * 0.6;
+        that.width = 900;
         that.height = that.width;
         that.depthThreshold = 2;
         that.rootRadial = d3
@@ -460,14 +461,19 @@ class Chart {
     const that = this;
     this.svg.remove();
     // this.svg.selectAll("g").remove();
-    this.svg = this.wrapper.append("svg");
-
-    this.svg
-      .style("max-width", "100%")
-      .style("height", "auto")
+    this.svg = this.wrapper
+      .append("svg")
+      .attr("width", this.width)
+      .attr("height", this.height)
       .style("font", "3px sans-serif")
       .style("margin", "5px");
-    // .attr("viewBox", [0, 0, this.width, this.height]);
+
+    // this.svg
+    //   .attr("viewBox", [0, 0, this.width, this.height])
+    //   // .style("max-width", "100%")
+    //   // .style("height", "auto")
+    //   .style("font", "3px sans-serif")
+    //   .style("margin", "5px");
 
     this.radius = this.width / 2;
 
@@ -514,6 +520,7 @@ class Chart {
       .enter()
       .append("path")
       .attr("fill", "blue")
+      .attr("fill-opacity", d => this.sizeOpacityScale(d.value))
       .attr("d", this.arc)
       .on("click", d => {
         d.children = d.children ? null : d._children;
@@ -564,6 +571,7 @@ class Chart {
     const textEnter = text
       .enter()
       .append("text")
+      .style("text-decoration", d => (d._children ? "underline" : "none"))
       .attr("transform", function(d) {
         console.log("d in radial text");
         console.dir(d);
