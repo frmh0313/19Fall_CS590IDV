@@ -86,7 +86,7 @@ class Chart {
       .on("change", function() {
         console.log("on change input");
         let inputValue = this.value;
-        sliderGenerator.silentValue(inputValue / 100);
+        sliderGenerator.silentValue(inputValue);
         that.depthThreshold = inputValue;
         const radioButtonVal = d3
           .selectAll(`input[name="layout"]:checked`)
