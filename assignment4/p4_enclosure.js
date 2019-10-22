@@ -55,7 +55,7 @@ class Chart {
         console.log("updateRadial");
         that.rootRadial = d3.hierarchy(that.dataSet);
 
-        that.width = that.height = 1200;
+        that.width = that.height = 800;
         that.rootRadial = d3
           .hierarchy(that.dataSet)
           .sum(d => d.value)
@@ -194,7 +194,7 @@ class Chart {
     this.svg = this.wrapper
       .append("svg")
       .attr("viewBox", [0, 0, this.width, this.height])
-      .style("font", "10px sans-serif");
+      .style("font", "8px sans-serif");
 
     const root = this.treemap(this.rootSquare);
 

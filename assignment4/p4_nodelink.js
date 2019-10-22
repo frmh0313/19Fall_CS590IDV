@@ -440,9 +440,6 @@ class Chart {
   }
 
   updateRadial(source) {
-    // this.width = this.height = 800;
-    // this.gLink.selectAll("path").remove();
-    // this.gNode.selectAll("g").remove();
     console.log("this.width: ", this.width);
     this.radius = this.width / 3;
     console.log("this.height: ", this.height);
@@ -451,10 +448,6 @@ class Chart {
       .tree()
       .size([2 * Math.PI, this.radius])
       .separation((a, b) => (a.parent == b.parent ? 1 : 3) / a.depth);
-
-    // this.width = 932;
-
-    // this.rootRadial = d3.hierarchy(this.dataSet);
 
     this.rootRadial.descendants().forEach((d, i) => {
       d.id = i;
