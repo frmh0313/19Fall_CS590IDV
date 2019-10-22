@@ -133,18 +133,18 @@ class Chart {
       .attr("min", 1)
       .attr("max", maxDepth)
       .on("change", function() {
-        console.log("on change input");
+        // console.log("on change input");
         let inputValue = this.value;
-        console.log("inputValue", inputValue);
+        // console.log("inputValue", inputValue);
         sliderGenerator.silentValue(inputValue);
-        console.log(sliderGenerator.silentValue());
+        // console.log(sliderGenerator.silentValue());
         that.depthThreshold = inputValue;
         const radioButtonVal = d3
           .selectAll(`input[name="layout"]:checked`)
           .property("value");
-        console.log("radioButtonVal: ", radioButtonVal);
+        // console.log("radioButtonVal: ", radioButtonVal);
         if (d3.select(`input[name="layout"]`).value == "horizontal") {
-          that.updateHorizontal(that.rootLayered);
+          that.updateHorizontal(that.rootHorizontal);
         } else {
           that.updateRadial(that.rootRadial);
         }
@@ -166,17 +166,17 @@ class Chart {
       )
       .fill("skyblue")
       .on("onchange", function(val) {
-        console.log("slider value: ", val);
+        // console.log("slider value: ", val);
         sliderInput.attr("value", null);
         sliderInput.attr("text", val).property("value", val);
         that.depthThreshold = val;
         const radioButtonVal = d3
           .selectAll(`input[name="layout"]:checked`)
           .property("value");
-        console.log("radioButtonVal: ", radioButtonVal);
+        // console.log("radioButtonVal: ", radioButtonVal);
 
-        if (radioButtonVal == "layered") {
-          that.updateLayered(that.rootLayered);
+        if (radioButtonVal == "horizontal") {
+          that.updateHorizontal(that.rootHorizontal);
         } else {
           that.updateRadial(that.rootRadial);
         }
@@ -188,7 +188,7 @@ class Chart {
       .attr("height", 100)
       .style("display", "block")
       .append("g")
-      .attr("transform", "translate(0, 30)")
+      .attr("transform", "translate(10, 30)")
       .call(sliderGenerator);
 
     this.sliderInput = sliderInput;
@@ -202,14 +202,14 @@ class Chart {
       .append("input")
       .attr("type", "radio")
       .attr("name", "layout")
-      .attr("id", "layered")
+      .attr("id", "horizontal")
       .attr("checked", true)
-      .attr("value", "layered");
+      .attr("value", "horizontal");
 
     this.radioButtonDiv
       .append("label")
-      .attr("for", "layered")
-      .text("Layered");
+      .attr("for", "horizontal")
+      .text("Horizontal");
 
     this.radioButtonDiv
       .append("input")
@@ -224,11 +224,9 @@ class Chart {
       .text("Radial Layout");
 
     d3.selectAll(`input[name="layout"]`).on("change", function() {
-      if (this.value == "layered") {
-        console.log("updateLayered");
-        that.gLink.selectAll("path").remove();
-        that.gNode.selectAll("g").remove();
-        that.updateHorizontal(that.root);
+      if (this.value == "horizontal") {
+        console.log("updateHorizontal");
+        that.updateHorizontal(that.rootHorizontal);
       } else {
         console.log("updateRadial");
         that.rootRadial = d3.hierarchy(that.dataSet);
@@ -238,7 +236,13 @@ class Chart {
             d._children = d.children;
           }
         });
+        that.width = window.innerWidth * 0.6;
+        that.height = that.width;
         that.depthThreshold = 2;
+        that.rootRadial = d3
+          .hierarchy(that.dataSet)
+          .sum(d => d.value)
+          .sort((a, b) => b.value - a.value);
         that.updateRadial(that.rootRadial);
       }
     });
@@ -255,20 +259,25 @@ class Chart {
 
     this.format = d3.format(",d");
 
-    this.rootLayered = d3
+    this.rootHorizontal = d3
       .hierarchy(this.dataSet)
       // .sum(d => d.size)
       .sum(d => d.value)
       .sort((a, b) => b.height - a.height || b.value - a.value);
 
-    this.rootLayered.descendants().forEach((d, i) => {
+    this.rootHorizontal.descendants().forEach((d, i) => {
       d.id = i;
       if (d.children) {
         d._children = d.children;
       }
     });
 
-    this.rootLayered.value = this.rootLayered.data.value;
+    console.log("this.rootHorizontal: ", this.rootHorizontal);
+    this.rootHorizontal.value = this.rootHorizontal.data.value;
+    console.log(
+      "this.rootHorizontal after changing value: ",
+      this.rootHorizontal
+    );
 
     const sizeValues = (() => {
       let sizeVals = [];
@@ -313,10 +322,10 @@ class Chart {
 
     this.setRadioButton();
     this.setSlider();
-    this.updateLayered(this.rootLayered);
+    this.updateHorizontal(this.rootHorizontal);
   }
 
-  updateLayered(source) {
+  updateHorizontal(source) {
     this.height = 5000;
     this.width = window.innerWidth * 0.9;
 
@@ -325,7 +334,7 @@ class Chart {
       .size([this.height, this.width])
       .padding(1);
 
-    this.rootLayered.descendants().forEach(d => {
+    this.rootHorizontal.descendants().forEach(d => {
       if (d.depth + 1 > this.depthThreshold) {
         d.children = null;
       }
@@ -333,7 +342,7 @@ class Chart {
 
     // console.log("data");
     // console.log(source.descendants());
-    // this.rootLayered.descendants().forEach((d, i) => {
+    // this.rootHorizontal.descendants().forEach((d, i) => {
     //   d.id = i;
     //   if (d.children) {
     //     d._children = d.children;
@@ -341,11 +350,23 @@ class Chart {
     // });
     const duration = d3.event && d3.event.altKey ? 2500 : 250;
 
-    this.partition(this.rootLayered);
+    // console.log("this.rootHorizontal in updateHorizontal 1");
+    // console.log(this.rootHorizontal);
+    this.partition(this.rootHorizontal);
+    // console.log("this.rootHorizontal after calling this.partition");
+    // console.log(this.rootHorizontal);
+
+    // svg - manage with update..
+    // this.svg.remove()
 
     const cell = this.svg
       .selectAll("g")
-      .data(this.rootLayered.descendants().reverse(), d => d.id);
+      // .data(this.rootHorizontal.descendants(), d => d.id);
+      .data(this.rootHorizontal.descendants().reverse(), d => {
+        // console.log("d in cell");
+        // console.log(d);
+        return d.id;
+      });
 
     const cellEnter = cell
       .enter()
@@ -359,7 +380,7 @@ class Chart {
 
         this.sliderInput.property("value", this.depthThreshold);
         this.sliderGenerator.silentValue(this.depthThreshold);
-        this.updateLayered(d);
+        this.updateHorizontal(d);
       });
 
     const cellEnterRect = cellEnter
@@ -420,5 +441,156 @@ class Chart {
       .attr("fill-opacity", 0);
   }
 
-  updateRadial(source) {}
+  updateRadial(source) {
+    // this.svg.selectAll("g").remove();
+    const that = this;
+    // this.svg.remove();
+    this.svg.selectAll("g").remove();
+    this.svg
+      .style("max-width", "100%")
+      .style("height", "auto")
+      .style("font", "3px sans-serif")
+      .style("margin", "5px");
+    // .attr("viewBox", [0, 0, this.width, this.height]);
+
+    this.radius = this.width / 2;
+
+    function autoBox() {
+      const { x, y, width, height } = this.getBBox();
+      // console.log("autoBox");
+      // console.log({ x, y, width, height });
+      return [x, y, width, height];
+    }
+
+    this.arc = d3
+      .arc()
+      .startAngle(d => d.x0)
+      .endAngle(d => d.x1)
+      .padAngle(d => Math.min((d.x1 - d.x0) / 2, 0.005))
+      .padRadius(this.radius / 2)
+      .innerRadius(d => d.y0)
+      .outerRadius(d => d.y1 - 1);
+
+    this.partitionRadial = d3.partition().size([2 * Math.PI, this.radius]);
+
+    this.rootRadial = d3
+      .hierarchy(this.dataSet)
+      .sum(d => d.value)
+      .sort((a, b) => b.value - a.value);
+
+    this.rootRadial.descendants().forEach((d, i) => {
+      d.id = i;
+      if (d.children) {
+        d._children = d.children;
+      }
+    });
+
+    this.rootRadial.descendants().forEach(d => {
+      if (d.depth + 1 > this.depthThreshold) {
+        d.children = null;
+      }
+    });
+
+    const duration = d3.event && d3.event.altKey ? 2500 : 250;
+
+    this.partitionRadial(this.rootRadial);
+
+    const path = this.svg
+      .append("g")
+      .attr("fill-opacity", 0.6)
+      .selectAll("path")
+      .data(this.rootRadial.descendants().filter(d => d.depth));
+
+    const pathEnter = path
+      .enter()
+      .append("path")
+      .attr("fill", "blue")
+      .attr("d", this.arc)
+      .on("click", d => {
+        d.children = d.children ? null : d._children;
+        if (d.depth == this.depthThreshold) {
+          this.depthThreshold = d.depth + 1;
+        }
+
+        this.sliderInput.property("value", this.depthThreshold);
+        this.sliderGenerator.silentValue(this.depthThreshold);
+        this.updateRadial(d);
+      });
+
+    const pathEnterTitle = pathEnter.append("title").text(
+      d =>
+        `${d
+          .ancestors()
+          .map(d => d.data.name)
+          .reverse()
+          .join("/")}\n${this.format(d.value)}`
+    );
+
+    const pathUpdate = path
+      .merge(pathEnter)
+      .transition()
+      .duration(duration)
+      .attr("d", this.arc);
+
+    const pathExit = path
+      .exit()
+      .transition()
+      .duration(duration)
+      .remove()
+      .attr("trasnform", d => `translate(${source.y}, ${source.x})`)
+      .attr("fill-opacity", 0)
+      .attr("stroke-opacity", 0);
+
+    const text = this.svg
+      .append("g")
+      .attr("pointer-events", "none")
+      .attr("text-anchor", "middle")
+      .selectAll("text")
+      .data(
+        this.rootRadial
+          .descendants()
+          .filter(d => d.depth && ((d.y0 + d.y1) / 2) * (d.x1 - d.x0) > 3)
+      );
+
+    const textEnter = text
+      .enter()
+      .append("text")
+      .attr("transform", function(d) {
+        console.log("d in radial text");
+        console.dir(d);
+        const x = (((d.x0 + d.x1) / 2) * 180) / Math.PI;
+        const y = (d.y0 + d.y1) / 2;
+        return `rotate(${x - 90})translate(${y},0)rotate(${x < 180 ? 0 : 180})`;
+      })
+      .attr("dy", "0.1em")
+      .text(d => d.data.name);
+
+    const textUpdate = text
+      .merge(textEnter)
+      .transition()
+      .duration(duration)
+      .attr("transform", function(d) {
+        console.log("d in radial text");
+        console.dir(d);
+        const x = (((d.x0 + d.x1) / 2) * 180) / Math.PI;
+        const y = (d.y0 + d.y1) / 2;
+        return `rotate(${x - 90})translate(${y},0)rotate(${x < 180 ? 0 : 180})`;
+      });
+
+    const textExit = text
+      .exit()
+      .transition()
+      .duration(duration)
+      .remove()
+      .attr("transform", function(d) {
+        console.log("d in radial text");
+        console.dir(d);
+        const x = (((d.x0 + d.x1) / 2) * 180) / Math.PI;
+        const y = (d.y0 + d.y1) / 2;
+        return `rotate(${x - 90})translate(${y},0)rotate(${x < 180 ? 0 : 180})`;
+      })
+      .attr("fill-opacity", 0);
+
+    this.svg.attr("viewBox", autoBox);
+  }
 }
