@@ -15,8 +15,7 @@ class Chart {
       }
     };
 
-    // calDepth(this.dataSet, 0);
-    calcDepth(this.dataSet, -1);
+    calcDepth(this.dataSet, 0);
     console.log(this.dataSet);
   }
 
@@ -51,25 +50,23 @@ class Chart {
     d3.selectAll(`input[name="layout"]`).on("change", function() {
       if (this.value == "rectangular") {
         console.log("updateRectangular");
-        that.updateRectangular(that.rootRectangular);
+        that.updateRectangular();
       } else {
         console.log("updateRadial");
         that.rootRadial = d3.hierarchy(that.dataSet);
-        that.rootRadial.descendants().forEach((d, i) => {
-          d.id = i;
-          if (d.children) {
-            d._children = d.children;
-          }
-        });
+        // that.rootRadial.descendants().forEach((d, i) => {
+        //   d.id = i;
+        //   if (d.children) {
+        //     d._children = d.children;
+        //   }
+        // });
         // that.width = window.innerWidth * 0.6;
-        that.width = 900;
-        that.height = that.width;
-        that.depthThreshold = 2;
+        that.width = that.height = 1200;
         that.rootRadial = d3
           .hierarchy(that.dataSet)
           .sum(d => d.value)
           .sort((a, b) => b.value - a.value);
-        that.updateRadial(that.rootRadial);
+        that.updateRadial();
       }
     });
   }
@@ -82,6 +79,7 @@ class Chart {
 
     this.format = d3.format(",d");
 
+    this.dataSetSquare = Object.assign({}, this.dataSet);
     const zeroingDirectoryValues = node => {
       if (node.children) {
         node.value = 0;
@@ -89,10 +87,10 @@ class Chart {
       }
     };
 
-    zeroingDirectoryValues(this.dataSet);
+    zeroingDirectoryValues(this.dataSetSquare);
 
     this.rootSquare = d3
-      .hierarchy(this.dataSet)
+      .hierarchy(this.dataSetSquare)
       .sum(d => d.value)
       .sort((a, b) => b.value - a.value);
 
@@ -109,24 +107,100 @@ class Chart {
       .padding(1)
       .round(true);
 
-    this.svg = this.wrapper
-      .append("svg")
-      .attr("width", this.width)
-      .attr("height", this.height)
-      .style("font", "10px sans-serif");
-
     this.setRadioButton();
     this.updateRectangular();
   }
 
   updateRadial() {
-    this.svg
-      .transition()
+    const radialColor = d3
+      .scaleLinear()
+      .domain([0, 5])
+      .range(["hsl(152,80%,80%)", "hsl(228,30%,50%)"])
+      .interpolate(d3.interpolateHcl);
+
+    this.width = this.height = 1200;
+
+    const pack = data =>
+      d3
+        .pack()
+        .size([this.width, this.height])
+        .padding(3)(
+        d3
+          .hierarchy(data)
+          .sum(d => d.value)
+          .sort((a, b) => b.value - a.value)
+      );
+
+    const root = pack(this.dataSetSquare);
+
+    this.svg.remove();
+
+    this.svg = this.wrapper
+      .append("svg")
       .attr(
         "viewBox",
         `-${this.width / 2} -${this.height / 2} ${this.width} ${this.height}`
       )
-      .style("display", "block");
+      .style("display", "block")
+      .style("margin", "0 -14px")
+      .style("background", radialColor(0));
+
+    const k = this.width / (root.r * 2);
+
+    const node = this.svg
+      .append("g")
+      .selectAll("circle")
+      .data(root.descendants().slice(1))
+      .join("circle")
+      .attr("fill", d => (d.children ? radialColor(d.depth) : "white"))
+      .attr(
+        "transform",
+        d => `translate(${(d.x - root.x) * k}, ${(d.y - root.y) * k})`
+      )
+      .attr("r", d => d.r * k)
+      .on("mouseover", function() {
+        d3.select(this).attr("stroke", "#000");
+      })
+      .on("mouseout", function() {
+        d3.select(this).attr("stroke", null);
+      });
+
+    const nodeTitle = node.append("title").text(
+      d =>
+        `${d
+          .ancestors()
+          .map(d => d.data.name)
+          .reverse()
+          .join("/")}\n${this.format(d.value)}`
+    );
+    // const node = this.svg
+    //   .append("g")
+    //   .selectAll("circle")
+    //   .data(this.rootRadial.descendants().slice(1))
+    //   .join("circle")
+    //   .attr("fill", d => (d.children ? radialColor(d.depth) : "white"))
+    //   .attr("pointer-events", d => (!d.children ? "none" : null))
+    //   .on("mouseover", function() {
+    //     d3.select(this).attr("stroke", "#000");
+    //   })
+    //   .on("mouseout", function() {
+    //     d3.select(this).attr("stroke", null);
+    //   });
+
+    const label = this.svg
+      .append("g")
+      .style("font", "12px sans-serif")
+      .attr("text-anchor", "middle")
+      .selectAll("text")
+      .data(root.descendants())
+      .join("text")
+      .attr(
+        "transform",
+        d => `translate(${(d.x - root.x) * k}, ${(d.y - root.y) * k})`
+      )
+      .style("fill-opacity", d => (d.parent === root ? 1 : 0))
+      .style("display", d => (d.parent === root ? "inline" : "none"))
+      .text(d => d.data.name);
   }
 
   updateRectangular() {
@@ -138,8 +212,7 @@ class Chart {
 
     this.svg = this.wrapper
       .append("svg")
-      .attr("width", this.width)
-      .attr("height", this.height)
+      .attr("viewBox", [0, 0, this.width, this.height])
       .style("font", "10px sans-serif");
 
     const root = this.treemap(this.rootSquare);
