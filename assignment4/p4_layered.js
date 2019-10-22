@@ -330,6 +330,16 @@ class Chart {
   }
 
   updateHorizontal(source) {
+    if (this.svg != null) {
+      this.svg.remove();
+    }
+    this.height = 5000;
+    this.width = window.innerWidth * 0.9;
+    this.svg = this.wrapper
+      .append("svg")
+      .attr("viewBox", [0, 0, this.width, this.height])
+      .style("font", "10px sans-serif");
+
     this.height = 5000;
     this.width = window.innerWidth * 0.9;
 
@@ -448,8 +458,10 @@ class Chart {
   updateRadial(source) {
     // this.svg.selectAll("g").remove();
     const that = this;
-    // this.svg.remove();
-    this.svg.selectAll("g").remove();
+    this.svg.remove();
+    // this.svg.selectAll("g").remove();
+    this.svg = this.wrapper.append("svg");
+
     this.svg
       .style("max-width", "100%")
       .style("height", "auto")
@@ -461,8 +473,6 @@ class Chart {
 
     function autoBox() {
       const { x, y, width, height } = this.getBBox();
-      // console.log("autoBox");
-      // console.log({ x, y, width, height });
       return [x, y, width, height];
     }
 
